@@ -27,28 +27,57 @@
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <!-- Interactive Graph Library -->
     <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
-            --primary-color: #0d9488;
-            /* teal-600 */
-            --primary-hover-color: #0f766e;
-            /* teal-700 */
+            --primary-color: #059669;
+            /* emerald-600 */
+            --primary-hover-color: #047857;
+            /* emerald-700 */
+            --primary-light: #d1fae5;
+            /* emerald-100 */
+            --surface-glass: rgba(255, 255, 255, 0.85);
+            --surface-blur: 16px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f1f5f9;
-            /* slate-100 */
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(160, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(160, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(210, 100%, 96%, 1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.01em;
         }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            transition: background-color 0.2s;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
         }
 
         .btn-primary:hover {
-            background-color: var(--primary-hover-color);
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .form-input {
+            transition: all 0.2s ease-in-out;
+            border-radius: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.9);
         }
 
         .form-input:focus {
@@ -58,7 +87,54 @@
             outline-offset: 2px;
             --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
             --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Modal Overrides */
+        #modal-container,
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.4) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            border-radius: 1.5rem !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transform-origin: center;
+            animation: modalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes modalPopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Card Overrides */
+        .dashboard-card,
+        .bg-white.rounded-xl.shadow-lg {
+            border-radius: 1.25rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dashboard-card:hover,
+        .bg-white.rounded-xl.shadow-lg:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
         }
 
         .sidebar {
@@ -264,68 +340,69 @@
         class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-full shadow-lg flex items-center gap-4 z-50 text-sm font-semibold hidden transition-transform duration-300">
         <span id="selected-items-count">0 selected</span>
         <div class="h-4 w-px bg-slate-600 mx-2"></div>
-        <button data-action="open-organise-modal" class="hover:text-teal-300 transition flex items-center gap-2"><i
+        <button data-action="open-organise-modal" class="hover:text-emerald-300 transition flex items-center gap-2"><i
                 data-lucide="folder-plus" class="h-4 w-4"></i>Group</button>
-        <button data-action="go-to-compare" class="hover:text-teal-300 transition flex items-center gap-2"><i
+        <button data-action="go-to-compare" class="hover:text-emerald-300 transition flex items-center gap-2"><i
                 data-lucide="bar-chart-3" class="h-4 w-4"></i>Compare</button>
-        <button data-action="print-pdf" class="hover:text-teal-300 transition flex items-center gap-2"><i
+        <button data-action="print-pdf" class="hover:text-emerald-300 transition flex items-center gap-2"><i
                 data-lucide="file-down" class="h-4 w-4"></i>PDF Cards</button>
-        <button data-action="print-cards" class="hover:text-teal-300 transition flex items-center gap-2"><i
+        <button data-action="print-cards" class="hover:text-emerald-300 transition flex items-center gap-2"><i
                 data-lucide="printer" class="h-4 w-4"></i>Print</button>
         <button data-action="clear-selection" class="ml-2 text-slate-400 hover:text-white">&times;</button>
     </div>
     <div class="flex h-screen">
         <!-- Sidebar -->
         <aside id="sidebar"
-            class="sidebar bg-white w-64 flex-shrink-0 border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-30 md:relative md:translate-x-0">
-            <div class="px-6 py-4 border-b">
-                <h2 class="font-bold text-xl text-teal-700 flex items-center gap-2"><i data-lucide="flask-conical"></i>
+            class="sidebar bg-white/70 backdrop-blur-md w-64 flex-shrink-0 border-r border-white/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex flex-col fixed inset-y-0 left-0 z-30 md:relative md:translate-x-0 transition-transform duration-300">
+            <div class="px-6 py-6 border-b border-white/50">
+                <h2 class="font-bold text-xl text-emerald-800 flex items-center gap-2 tracking-tight"><i
+                        data-lucide="flask-conical" class="text-emerald-600"></i>
                     Trial Manager</h2>
             </div>
-            <nav id="sidebar-nav" class="flex-grow p-4 space-y-2">
+            <nav id="sidebar-nav" class="flex-grow p-4 space-y-1 mt-2">
                 <a href="#" data-page="dashboard"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span>
                 </a>
                 <a href="#" data-page="projects"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="folder-kanban"></i><span>Projects (RCBD)</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i><span>Projects (RCBD)</span>
                 </a>
                 <a href="#" data-action="open-plot-scanner"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="scan-qr-code"></i><span>Plot Scanner</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="scan-qr-code" class="w-5 h-5"></i><span>Plot Scanner</span>
                 </a>
                 <a href="#" data-page="formulations"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="flask-conical"></i><span>Formulations</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="flask-conical" class="w-5 h-5"></i><span>Formulations</span>
                 </a>
                 <a href="#" data-page="trials"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="list-checks"></i><span>Trials</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="list-checks" class="w-5 h-5"></i><span>Trials</span>
                 </a>
                 <a href="#" data-page="compareTrials"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="file-box"></i><span>Reports & Cards</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="file-box" class="w-5 h-5"></i><span>Reports & Cards</span>
                 </a>
                 <a href="#" data-page="organisations"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="folder-kanban"></i><span>Organisations</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i><span>Organisations</span>
                 </a>
                 <a href="#" data-page="ingredients"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="shopping-bag"></i><span>Ingredient Costs</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i><span>Ingredient Costs</span>
                 </a>
                 <a href="#" data-page="aiAssistant"
-                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                    <i data-lucide="sparkles"></i><span>AI Assistant</span>
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-emerald-600 bg-emerald-50 font-semibold shadow-sm hover:shadow-md hover:translate-x-1 transition-all duration-200">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i><span>AI Assistant</span>
                 </a>
-                <div class="pt-4 mt-auto border-t">
+                <div class="pt-4 mt-8 border-t border-slate-200/50">
                     <a href="#" data-page="dataMgmt"
-                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
-                        <i data-lucide="database"></i><span>Data Management</span>
+                        class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm hover:translate-x-1 transition-all duration-200 font-medium">
+                        <i data-lucide="database" class="w-5 h-5"></i><span>Data Management</span>
                     </a>
                     <a href="#" data-page="settings"
-                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-teal-50 hover:text-teal-700">
+                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-emerald-700">
                         <i data-lucide="settings"></i><span>Settings</span>
                     </a>
                 </div>
@@ -333,14 +410,18 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-hidden">
+        <main class="flex-1 flex flex-col overflow-hidden bg-transparent">
             <!-- Header -->
-            <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center flex-shrink-0">
-                <button id="menu-toggle" class="md:hidden p-2 rounded-md text-slate-600 hover:bg-slate-100">
+            <header
+                class="bg-white/60 backdrop-blur-md border-b border-white/40 p-5 flex justify-between items-center flex-shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.02)] sticky top-0 z-20">
+                <button id="menu-toggle"
+                    class="md:hidden p-2 rounded-xl text-slate-600 hover:bg-white/80 transition-colors">
                     <i data-lucide="menu"></i>
                 </button>
-                <h1 id="page-title" class="text-xl font-semibold text-slate-800">Dashboard</h1>
-                <div id="sync-status" class="flex items-center gap-2 text-xs font-semibold"></div>
+                <h1 id="page-title" class="text-2xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
+                <div id="sync-status"
+                    class="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-white/50 border border-white/60 shadow-sm backdrop-blur-sm">
+                </div>
                 <div><!-- Placeholder for any header actions --></div>
             </header>
 
@@ -400,7 +481,7 @@
                 <button data-action="close-camera"
                     class="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-200 transition">Cancel</button>
                 <button data-action="capture-photo"
-                    class="px-4 py-2 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 shadow-md transition">Capture</button>
+                    class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 shadow-md transition">Capture</button>
             </div>
         </div>
     </div>
@@ -426,7 +507,7 @@
             <div class="px-5 py-4 border-t bg-slate-50 flex justify-between items-center gap-3">
                 <label class="flex items-center gap-2 text-sm text-slate-700 font-medium cursor-pointer">
                     <input type="checkbox" id="continuous-scan-toggle"
-                        class="h-4 w-4 text-teal-600 rounded border-gray-300">
+                        class="h-4 w-4 text-emerald-600 rounded border-gray-300">
                     Continuous Mode
                 </label>
                 <button data-action="close-qr-scanner"
@@ -440,9 +521,9 @@
         class="fixed inset-0 bg-black bg-opacity-80 z-[9999] flex items-center justify-center p-4 hidden">
         <div
             class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-            <div class="px-5 py-4 border-b bg-teal-50">
-                <h3 class="font-bold text-lg text-teal-800" id="scan-match-title">Trial Found</h3>
-                <p class="text-xs text-teal-600" id="scan-match-subtitle">Select an action</p>
+            <div class="px-5 py-4 border-b bg-emerald-50">
+                <h3 class="font-bold text-lg text-emerald-800" id="scan-match-title">Trial Found</h3>
+                <p class="text-xs text-emerald-600" id="scan-match-subtitle">Select an action</p>
             </div>
             <div class="p-6 grid grid-cols-1 gap-4">
                 <button id="scan-action-camera"
@@ -458,9 +539,9 @@
                 </button>
 
                 <button id="scan-action-weed"
-                    class="flex items-center gap-4 p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition group">
+                    class="flex items-center gap-4 p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition group">
                     <div
-                        class="bg-teal-500 text-white p-3 rounded-full shadow-md group-hover:scale-110 transition-transform">
+                        class="bg-emerald-500 text-white p-3 rounded-full shadow-md group-hover:scale-110 transition-transform">
                         <i data-lucide="sprout" class="h-6 w-6"></i>
                     </div>
                     <div class="text-left">
@@ -811,7 +892,7 @@
                 targetInput.placeholder = "Listening... Speak now.";
 
                 // Add visual indicator class
-                targetInput.classList.add('ring-4', 'ring-teal-300', 'bg-teal-50');
+                targetInput.classList.add('ring-4', 'ring-emerald-300', 'bg-emerald-50');
 
                 let finalTranscript = '';
 
@@ -841,7 +922,7 @@
 
                 function cleanup() {
                     targetInput.placeholder = originalPlaceholder;
-                    targetInput.classList.remove('ring-4', 'ring-teal-300', 'bg-teal-50');
+                    targetInput.classList.remove('ring-4', 'ring-emerald-300', 'bg-emerald-50');
                 }
 
                 recognition.start();
@@ -2250,7 +2331,7 @@ IMPORTANT:
 </div>
 <div class="flex justify-end gap-3 mt-6">
 <button onclick="BulkEditManager.closeBulkEditModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-<button onclick="BulkEditManager.applyBulkEdit()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Update ${this.selectedTrialIds.size} Trials</button>
+<button onclick="BulkEditManager.applyBulkEdit()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Update ${this.selectedTrialIds.size} Trials</button>
 </div>
 </div>
 </div>`;
@@ -2719,7 +2800,7 @@ IMPORTANT:
                 page: (pageId) => ({
                     dashboard: `
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                            <div class="dashboard-card bg-white p-6 rounded-xl shadow-lg flex items-center gap-4"><div class="bg-teal-100 p-3 rounded-full"><i data-lucide="list-checks" class="text-teal-600"></i></div><div><p class="text-sm text-slate-500">Total Trials</p><p id="total-trials" class="text-2xl font-bold text-slate-800">0</p></div></div>
+                            <div class="dashboard-card bg-white p-6 rounded-xl shadow-lg flex items-center gap-4"><div class="bg-emerald-100 p-3 rounded-full"><i data-lucide="list-checks" class="text-emerald-600"></i></div><div><p class="text-sm text-slate-500">Total Trials</p><p id="total-trials" class="text-2xl font-bold text-slate-800">0</p></div></div>
                             <div class="dashboard-card bg-white p-6 rounded-xl shadow-lg flex items-center gap-4" style="animation-delay: 0.1s;"><div class="bg-amber-100 p-3 rounded-full"><i data-lucide="loader-2" class="text-amber-600"></i></div><div><p class="text-sm text-slate-500">Active Trials</p><p id="active-trials" class="text-2xl font-bold text-slate-800">0</p></div></div>
                             <div class="dashboard-card bg-white p-6 rounded-xl shadow-lg flex items-center gap-4" style="animation-delay: 0.2s;"><div class="bg-green-100 p-3 rounded-full"><i data-lucide="check-circle-2" class="text-green-600"></i></div><div><p class="text-sm text-slate-500">Completed Trials</p><p id="completed-trials" class="text-2xl font-bold text-slate-800">0</p></div></div>
                         </div>
@@ -2730,7 +2811,7 @@ IMPORTANT:
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                             <div class="dashboard-card bg-white p-6 rounded-xl shadow-lg md:col-span-2" style="animation-delay: 0.5s;">
                                 <div class="flex items-center justify-between mb-4">
-                                    <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-teal-600"></i> Top Formulations This Season</h3>
+                                    <h3 class="font-semibold text-slate-800 flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-emerald-600"></i> Top Formulations This Season</h3>
                                     <div class="flex flex-wrap gap-2 text-xs">
                                         <select id="top-formulations-year" class="form-input px-2 py-1 border rounded">
                                             <option value="">All Years</option>
@@ -2796,7 +2877,7 @@ IMPORTANT:
                     trials: `
                         <div class="mb-6 border-b border-gray-200">
                             <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                                <button data-action="switch-trials-tab" data-tab="standard" class="border-teal-500 text-teal-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                <button data-action="switch-trials-tab" data-tab="standard" class="border-emerald-500 text-emerald-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                                     Standard Trials
                                 </button>
                                 <button data-action="switch-trials-tab" data-tab="rcbd" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
@@ -2804,7 +2885,7 @@ IMPORTANT:
                                 </button>
                             </nav>
                         </div>
-                        <div class="bg-white p-4 rounded-lg shadow-md mb-6"><div class="flex justify-between items-center"><h3 class="font-semibold text-gray-800 mb-2">Filters & Sorting</h3><div class="flex gap-2"><button data-action="reset-filters" class="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-md hover:bg-red-200">Reset Filters</button><button data-action="sort-trials" data-sort="date" class="text-sm bg-gray-200 px-3 py-1 rounded-md">Sort by Date</button><button data-action="sort-trials" data-sort="result" class="text-sm bg-gray-200 px-3 py-1 rounded-md">Sort by Result</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4"><input type="search" data-action="filter" data-type="trial-search" placeholder="General search (Investigator, Species)..." class="w-full px-4 py-2 border rounded-lg form-input"><input type="text" data-action="filter" data-type="trial-formulation-text" placeholder="Search by Formulation Name..." class="w-full px-4 py-2 border rounded-lg form-input bg-teal-50/50 border-teal-200"><select data-action="filter" data-type="trial-formulation" class="p-2 border rounded-lg bg-white form-input"><option value="">Filter by Formulation (List)</option></select><div class="grid grid-cols-2 gap-2"><input type="date" data-action="filter" data-type="trial-start-date" class="p-2 border rounded-lg form-input" title="Start Date"><input type="date" data-action="filter" data-type="trial-end-date" class="p-2 border rounded-lg form-input" title="End Date"></div></div></div><div class="flex justify-between items-center mb-6"><button data-action="openModal" data-type="trial" class="btn-primary text-white px-4 py-2 rounded-lg shadow w-full sm:w-auto flex items-center gap-2"><i data-lucide="plus"></i> Log New Trial</button></div>
+                        <div class="bg-white p-4 rounded-lg shadow-md mb-6"><div class="flex justify-between items-center"><h3 class="font-semibold text-gray-800 mb-2">Filters & Sorting</h3><div class="flex gap-2"><button data-action="reset-filters" class="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-md hover:bg-red-200">Reset Filters</button><button data-action="sort-trials" data-sort="date" class="text-sm bg-gray-200 px-3 py-1 rounded-md">Sort by Date</button><button data-action="sort-trials" data-sort="result" class="text-sm bg-gray-200 px-3 py-1 rounded-md">Sort by Result</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4"><input type="search" data-action="filter" data-type="trial-search" placeholder="General search (Investigator, Species)..." class="w-full px-4 py-2 border rounded-lg form-input"><input type="text" data-action="filter" data-type="trial-formulation-text" placeholder="Search by Formulation Name..." class="w-full px-4 py-2 border rounded-lg form-input bg-emerald-50/50 border-emerald-200"><select data-action="filter" data-type="trial-formulation" class="p-2 border rounded-lg bg-white form-input"><option value="">Filter by Formulation (List)</option></select><div class="grid grid-cols-2 gap-2"><input type="date" data-action="filter" data-type="trial-start-date" class="p-2 border rounded-lg form-input" title="Start Date"><input type="date" data-action="filter" data-type="trial-end-date" class="p-2 border rounded-lg form-input" title="End Date"></div></div></div><div class="flex justify-between items-center mb-6"><button data-action="openModal" data-type="trial" class="btn-primary text-white px-4 py-2 rounded-lg shadow w-full sm:w-auto flex items-center gap-2"><i data-lucide="plus"></i> Log New Trial</button></div>
                         <div id="trials-list-standard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"></div>
                         <div id="trials-list-rcbd" class="hidden space-y-8"></div>
 
@@ -2813,8 +2894,8 @@ IMPORTANT:
                             <span class="font-bold text-sm text-nowrap"><span id="selected-count">0</span> Selected</span>
                             <div class="h-4 w-px bg-slate-600"></div>
                             <div class="flex items-center gap-3">
-                                <button data-action="go-to-compare" class="hover:text-teal-400 font-medium text-sm transition flex items-center gap-1"><i data-lucide="bar-chart-2" class="h-4 w-4"></i> Compare</button>
-                                <button data-action="print-cards" class="hover:text-teal-400 font-medium text-sm transition flex items-center gap-1"><i data-lucide="printer" class="h-4 w-4"></i> Print</button>
+                                <button data-action="go-to-compare" class="hover:text-emerald-400 font-medium text-sm transition flex items-center gap-1"><i data-lucide="bar-chart-2" class="h-4 w-4"></i> Compare</button>
+                                <button data-action="print-cards" class="hover:text-emerald-400 font-medium text-sm transition flex items-center gap-1"><i data-lucide="printer" class="h-4 w-4"></i> Print</button>
                                 <button data-action="delete-selected" class="hover:text-red-400 font-medium text-sm transition flex items-center gap-1"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button>
                             </div>
                             <button data-action="clear-selection" class="ml-2 p-1 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white"><i data-lucide="x" class="h-4 w-4"></i></button>
@@ -2826,7 +2907,7 @@ IMPORTANT:
                                 <h2 class="text-xl font-semibold text-gray-700">Comparative Analysis</h2>
                                 <div class="flex gap-2">
                                     <button data-action="export-csv" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700 transition"><i data-lucide="table"></i> Export CSV</button>
-                                    <button data-action="export-professional-report" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-teal-700 transition"><i data-lucide="file-text"></i> Export Report</button>
+                                    <button data-action="export-professional-report" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-emerald-700 transition"><i data-lucide="file-text"></i> Export Report</button>
                                 </div>
                             </div>
                             
@@ -2912,14 +2993,14 @@ IMPORTANT:
                         <div class="bg-white p-6 rounded-lg shadow h-full flex flex-col min-h-[70vh]">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-xl font-semibold text-gray-700 flex items-center gap-2">
-                                    <i data-lucide="bot" class="text-teal-600 w-6 h-6"></i> Virtual Lab Assistant
+                                    <i data-lucide="bot" class="text-emerald-600 w-6 h-6"></i> Virtual Lab Assistant
                                 </h2>
                                 <button data-action="clear-chat" class="text-sm bg-gray-200 px-3 py-1 rounded-md hover:bg-gray-300 transition-colors">Clear History</button>
                             </div>
                             
                             <!-- AI Quick Prompts List -->
                             <div class="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide shrink-0">
-                                <button id="btn-prompt-optimizer" class="text-xs bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-full hover:bg-teal-100 whitespace-nowrap transition-colors flex items-center gap-1 font-medium shadow-sm">
+                                <button id="btn-prompt-optimizer" class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full hover:bg-emerald-100 whitespace-nowrap transition-colors flex items-center gap-1 font-medium shadow-sm">
                                     <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Formulation Optimizer
                                 </button>
                                 <button id="btn-prompt-chart" class="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-full hover:bg-indigo-100 whitespace-nowrap transition-colors flex items-center gap-1 font-medium shadow-sm">
@@ -3016,14 +3097,14 @@ IMPORTANT:
                                         <!-- API key inputs will be rendered here -->
                                     </div>
                                     <div class="flex items-center gap-3 mt-3">
-                                        <button type="button" data-action="add-api-key" class="text-sm text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Another API Key</button>
+                                        <button type="button" data-action="add-api-key" class="text-sm text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Another API Key</button>
                                         <button type="button" data-action="test-api-key" class="text-sm bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1 rounded-md hover:bg-blue-200 font-semibold flex items-center gap-1"><i data-lucide="zap" class="h-4 w-4"></i> Test API Key</button>
                                     </div>
                                     
                                     <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                                         <h4 class="text-sm font-semibold text-amber-800 mb-2">API Quota Saver</h4>
                                         <div class="flex items-center gap-3">
-                                            <input type="checkbox" id="auto-analyze-photos" name="autoAnalyzePhotos" class="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                            <input type="checkbox" id="auto-analyze-photos" name="autoAnalyzePhotos" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                                             <div>
                                                 <label for="auto-analyze-photos" class="text-sm font-medium text-gray-800">Auto-Analyze Photos for Efficacy</label>
                                                 <p class="text-xs text-gray-500">When enabled, each photo upload uses 1 API call. Disable to save quota (weed identification still works).</p>
@@ -3073,13 +3154,13 @@ IMPORTANT:
                                             <input type="url" id="folder-url" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 form-input" placeholder="https://drive.google.com/drive/folders/...">
                                             
                                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div class="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                                                <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                                                     <div class="flex items-center justify-between gap-4">
                                                         <div>
-                                                            <h4 class="text-sm font-semibold text-teal-800">Drive Cleanup Utility</h4>
-                                                            <p class="text-xs text-teal-700 mt-1">Automatically organize all existing trial photos into "Project &gt; Trial" subfolders.</p>
+                                                            <h4 class="text-sm font-semibold text-emerald-800">Drive Cleanup Utility</h4>
+                                                            <p class="text-xs text-emerald-700 mt-1">Automatically organize all existing trial photos into "Project &gt; Trial" subfolders.</p>
                                                         </div>
-                                                        <button type="button" data-action="organize-drive-photos" class="whitespace-nowrap bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 font-medium text-sm flex items-center gap-2">
+                                                        <button type="button" data-action="organize-drive-photos" class="whitespace-nowrap bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium text-sm flex items-center gap-2">
                                                             <i data-lucide="layout-grid" class="h-4 w-4"></i> Organize Drive Photos
                                                         </button>
                                                     </div>
@@ -3134,28 +3215,28 @@ IMPORTANT:
                 modal: (modalId, isEdit = false, data = {}) => {
                     const modalTemplates = {
                         ingredient: `<div id="ingredient-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">${isEdit ? 'Edit' : 'Add'} Ingredient</h3><form id="ingredient-form"><input type="hidden" name="id"><div class="mb-4"><label class="block text-sm font-medium text-gray-700">Ingredient Name</label><input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm form-input"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700">Cost</label><input type="number" name="cost" step="0.01" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm form-input"></div><div><label class="block text-sm font-medium text-gray-700">Base Unit</label><select name="unit" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white form-input"><option value="L">L</option><option value="kg">kg</option><option value="ml">ml</option><option value="gm">gm</option></select></div></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save</button></div></form></div></div>`,
-                        formulation: `<div id="formulation-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-auto mt-10"><h3 class="text-lg font-bold mb-4 text-slate-800">${isEdit ? 'Edit' : 'Add'} Formulation</h3><form id="formulation-form"><input type="hidden" name="id"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><input type="text" name="name" required placeholder="Formulation Name" class="p-2 border rounded-md form-input"><input type="text" name="notes" placeholder="Notes" class="p-2 border rounded-md form-input"></div><div class="mt-6"><h4 class="text-md font-medium text-gray-800">Bulk Add Ingredients</h4><p class="text-sm text-gray-500 mb-2">Enter ingredients in the format: Name QuantityUnit, ...</p><div class="flex gap-2"><textarea id="bulk-ingredients-input" placeholder="Pelargonic Acid 50ML, Capric Acid 20ML" class="w-full p-2 border rounded-md form-input" rows="3"></textarea><button type="button" data-action="apply-bulk-add" class="bg-indigo-600 text-white px-4 py-2 rounded-lg self-start">Add</button></div></div><div class="mt-6"><h4 class="text-md font-medium text-gray-800">Ingredients</h4><div id="formulation-ingredients-container" class="mt-2 space-y-3"></div><button type="button" data-action="add-ingredient-row" class="mt-3 text-sm text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Ingredient</button></div><div class="mt-6 border-t pt-4"><p class="font-semibold text-slate-700">Total Cost: <span id="formulation-total-cost" class="text-teal-700">${CURRENCY_SYMBOL}0.00</span></p></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save</button></div></form></div></div>`,
+                        formulation: `<div id="formulation-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-auto mt-10"><h3 class="text-lg font-bold mb-4 text-slate-800">${isEdit ? 'Edit' : 'Add'} Formulation</h3><form id="formulation-form"><input type="hidden" name="id"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><input type="text" name="name" required placeholder="Formulation Name" class="p-2 border rounded-md form-input"><input type="text" name="notes" placeholder="Notes" class="p-2 border rounded-md form-input"></div><div class="mt-6"><h4 class="text-md font-medium text-gray-800">Bulk Add Ingredients</h4><p class="text-sm text-gray-500 mb-2">Enter ingredients in the format: Name QuantityUnit, ...</p><div class="flex gap-2"><textarea id="bulk-ingredients-input" placeholder="Pelargonic Acid 50ML, Capric Acid 20ML" class="w-full p-2 border rounded-md form-input" rows="3"></textarea><button type="button" data-action="apply-bulk-add" class="bg-indigo-600 text-white px-4 py-2 rounded-lg self-start">Add</button></div></div><div class="mt-6"><h4 class="text-md font-medium text-gray-800">Ingredients</h4><div id="formulation-ingredients-container" class="mt-2 space-y-3"></div><button type="button" data-action="add-ingredient-row" class="mt-3 text-sm text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Ingredient</button></div><div class="mt-6 border-t pt-4"><p class="font-semibold text-slate-700">Total Cost: <span id="formulation-total-cost" class="text-emerald-700">${CURRENCY_SYMBOL}0.00</span></p></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save</button></div></form></div></div>`,
                         trial: `<div id="trial-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl mx-auto mt-10 h-[90vh] flex flex-col"><h3 class="text-lg font-bold mb-4 text-slate-800 flex-shrink-0">${isEdit ? 'Edit' : 'Log'} Trial</h3><form id="trial-form" class="flex-grow overflow-y-auto pr-4 -mr-4"><input type="hidden" name="id"><div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-teal-50/50 p-4 rounded-lg border border-teal-100 mb-2">
+                                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 mb-2">
                                     <div>
-                                        <label class="block text-xs font-bold text-teal-700 uppercase mb-1">Project (RCBD)</label>
+                                        <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">Project (RCBD)</label>
                                         <select name="projectId" id="trial-project" class="w-full p-2 border rounded-md bg-white text-sm form-input">
                                             <option value="">No Project</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-teal-700 uppercase mb-1">Block / Replication</label>
+                                        <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">Block / Replication</label>
                                         <select name="blockId" id="trial-block" class="w-full p-2 border rounded-md bg-white text-sm form-input">
                                             <option value="">No Block</option>
                                         </select>
                                     </div>
                                     <div class="flex items-center gap-4 mt-1">
                                         <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" name="isControl" class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                            <input type="checkbox" name="isControl" class="h-4 w-4 rounded border-gray-300 text-emerald-600">
                                             <span class="text-xs font-medium text-slate-700">Untreated Control</span>
                                         </label>
                                         <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" name="isStandardCheck" class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                            <input type="checkbox" name="isStandardCheck" class="h-4 w-4 rounded border-gray-300 text-emerald-600">
                                             <span class="text-xs font-medium text-slate-700">Standard Check</span>
                                         </label>
                                     </div>
@@ -3178,25 +3259,25 @@ IMPORTANT:
                                 </div>
                             </div>
                             <div class="md:col-span-2 p-4 bg-slate-50 rounded-lg space-y-3 mt-6">
-                                <div class="flex items-center gap-2"><input type="checkbox" id="is-completed" name="isCompleted" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"><label for="is-completed" class="text-sm font-medium text-gray-800">Mark trial as Completed</label></div>
-                                <div class="flex items-center gap-2"><input type="checkbox" id="control-finalized" name="controlFinalized" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"><label for="control-finalized" class="text-sm font-medium text-gray-800">Stop counting control days</label></div>
+                                <div class="flex items-center gap-2"><input type="checkbox" id="is-completed" name="isCompleted" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"><label for="is-completed" class="text-sm font-medium text-gray-800">Mark trial as Completed</label></div>
+                                <div class="flex items-center gap-2"><input type="checkbox" id="control-finalized" name="controlFinalized" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"><label for="control-finalized" class="text-sm font-medium text-gray-800">Stop counting control days</label></div>
                                 <div id="finalization-details" class="grid grid-cols-2 gap-4 hidden"><div><label for="finalization-date" class="block text-xs font-medium text-gray-600">Finalization Date</label><input type="date" name="finalizationDate" id="finalization-date" class="p-2 border rounded-md text-sm form-input w-full bg-slate-100"></div><div><label for="final-control-duration" class="block text-xs font-medium text-gray-600">Final Control Days</label><input type="number" name="finalControlDuration" id="final-control-duration" placeholder="Days" class="p-2 border rounded-md text-sm form-input w-full"></div></div>
                             </div>
-                            <div class="mt-6 p-4 bg-slate-50 rounded-lg"><h4 class="text-md font-medium text-gray-800">Efficacy & Phyto Observations</h4><div id="efficacy-observations-container" class="mt-2 space-y-4"></div><button type="button" data-action="add-observation" class="mt-3 text-sm text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Observation</button></div>
+                            <div class="mt-6 p-4 bg-slate-50 rounded-lg"><h4 class="text-md font-medium text-gray-800">Efficacy & Phyto Observations</h4><div id="efficacy-observations-container" class="mt-2 space-y-4"></div><button type="button" data-action="add-observation" class="mt-3 text-sm text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="plus-circle" class="h-4 w-4"></i> Add Observation</button></div>
                             <div class="mt-6 grid grid-cols-1 gap-6"><textarea name="conclusion" rows="3" placeholder="Conclusion" class="p-2 border rounded-md form-input"></textarea><textarea name="notes" rows="2" placeholder="Trial Notes" class="p-2 border rounded-md form-input"></textarea></div>
-                            <div class="mt-6"><h4 class="text-md font-medium text-gray-800">Add Photos with Dated Weather</h4><div class="flex items-end gap-4 mt-2"><div class="flex-grow"><label for="photo-date" class="block text-sm font-medium text-gray-700">Photo Date</label><input type="date" id="photo-date" class="mt-1 p-2 border rounded-md w-full form-input"></div><input type="file" id="trial-photos" multiple accept="image/*" class="hidden"><label for="trial-photos" class="cursor-pointer bg-white text-teal-700 px-4 py-2 rounded-lg border border-teal-700 hover:bg-teal-50 text-sm font-semibold">Choose Files</label><button type="button" data-action="open-camera" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold">Camera</button></div><div id="photo-preview" class="mt-2 flex flex-wrap gap-4"></div></div>
+                            <div class="mt-6"><h4 class="text-md font-medium text-gray-800">Add Photos with Dated Weather</h4><div class="flex items-end gap-4 mt-2"><div class="flex-grow"><label for="photo-date" class="block text-sm font-medium text-gray-700">Photo Date</label><input type="date" id="photo-date" class="mt-1 p-2 border rounded-md w-full form-input"></div><input type="file" id="trial-photos" multiple accept="image/*" class="hidden"><label for="trial-photos" class="cursor-pointer bg-white text-emerald-700 px-4 py-2 rounded-lg border border-emerald-700 hover:bg-emerald-50 text-sm font-semibold">Choose Files</label><button type="button" data-action="open-camera" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold">Camera</button></div><div id="photo-preview" class="mt-2 flex flex-wrap gap-4"></div></div>
                         </form><div class="mt-6 flex justify-end space-x-3 flex-shrink-0 border-t pt-4"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" form="trial-form" class="btn-primary text-white px-4 py-2 rounded-lg">Save</button></div></div></div>`,
                         confirm: `<div id="confirm-modal" class="modal"><div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-sm mx-auto mt-20"><h3 id="confirm-title" class="text-lg font-bold mb-4">Are you sure?</h3><p id="confirm-message" class="text-gray-600 mb-6">This action cannot be undone.</p><div class="flex justify-end space-x-3"><button data-action="confirm-cancel" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button data-action="confirm-ok" class="bg-red-600 text-white px-4 py-2 rounded-lg">Confirm</button></div></div></div>`,
                         project: `<div id="project-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">${isEdit ? 'Edit' : 'New'} Project</h3><form id="project-form"><input type="hidden" name="id"><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700">Project Name</label><input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm form-input" placeholder="e.g. Rice Herbicide Trial 2026"></div><div><label class="block text-sm font-medium text-gray-700">Response Metric (Primary)</label><select name="metric" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white form-input" ${isEdit ? 'disabled' : ''}><option value="% Weed Cover">% Weed Cover</option><option value="Weed Dry Weight">Weed Dry Weight</option></select><p class="text-xs text-gray-500 mt-1">${isEdit ? 'Metric cannot be changed once project is created.' : 'This will be the standard response variable for all blocks.'}</p></div><div><label class="block text-sm font-medium text-gray-700">Notes (Optional)</label><textarea name="notes" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm form-input" rows="2"></textarea></div></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save Project</button></div></form></div></div>`,
                         block: `<div id="block-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">${isEdit ? 'Edit' : 'Add'} Block</h3><form id="block-form"><input type="hidden" name="id"><input type="hidden" name="projectId" value="${data.projectId || ''}"><input type="hidden" name="replicationNum"><div class="space-y-4">
                                 <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
                                     <span class="text-sm font-medium text-slate-600">Replication Designation</span>
-                                    <span id="block-rep-display" class="font-bold text-teal-700 bg-teal-100 px-3 py-1 rounded-md">R?</span>
+                                    <span id="block-rep-display" class="font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-md">R?</span>
                                 </div>
                                 <div><label class="block text-sm font-medium text-gray-700">Block Name</label><input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm form-input" placeholder="e.g. Block A"></div></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save Block</button></div></form></div></div>`,
                         randomize: `<div id="randomize-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl mx-auto mt-10"><h3 class="text-lg font-bold mb-2 text-slate-800">Randomize Plot Layout</h3>
-                        <div class="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-lg"><p class="text-xs font-bold text-teal-600 uppercase">Target Project</p><p class="text-lg font-bold text-teal-900">${(() => { const p = state.projects.find(x => x.ID === (data.projectId || '')); return p ? sanitizeHTML(p.Name) : '<span class="text-red-500">No Project Selected. Please navigate to a Project first.</span>'; })()}</p></div>
-                        <p class="text-sm text-slate-500 mb-6">Select treatments to distribute across all blocks in this project.</p><form id="randomize-form"><input type="hidden" name="projectId" value="${data.projectId || ''}"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Select Treatments</label><div id="randomize-formulations-list" class="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1"></div></div></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Default Plot Info</label><div class="space-y-3"><input type="text" name="investigatorName" placeholder="Investigator" class="w-full p-2 border rounded-md text-sm form-input" list="investigator-list"><input type="text" name="dosage" placeholder="Default Dosage (mL/ha)" class="w-full p-2 border rounded-md text-sm form-input"><input type="text" name="weedSpecies" placeholder="Weed Species" class="w-full p-2 border rounded-md text-sm form-input"><input type="date" name="date" class="w-full p-2 border rounded-md text-sm form-input" value="${new Date().toISOString().split('T')[0]}"></div></div></div></div><div class="mt-8 p-4 bg-teal-50 border border-teal-100 rounded-lg"><div class="flex items-start gap-3"><i data-lucide="info" class="h-5 w-5 text-teal-600 flex-shrink-0 mt-0.5"></i><div><p class="text-sm font-semibold text-teal-800">Randomization Strategy</p><p class="text-xs text-teal-700">Plots will be generated for every block. One treatment must be tagged as "Control" to enable WCE calculations later.</p></div></div></div><div class="mt-8 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Generate & Randomize</button></div></form></div></div>`,
+                        <div class="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg"><p class="text-xs font-bold text-emerald-600 uppercase">Target Project</p><p class="text-lg font-bold text-emerald-900">${(() => { const p = state.projects.find(x => x.ID === (data.projectId || '')); return p ? sanitizeHTML(p.Name) : '<span class="text-red-500">No Project Selected. Please navigate to a Project first.</span>'; })()}</p></div>
+                        <p class="text-sm text-slate-500 mb-6">Select treatments to distribute across all blocks in this project.</p><form id="randomize-form"><input type="hidden" name="projectId" value="${data.projectId || ''}"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Select Treatments</label><div id="randomize-formulations-list" class="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1"></div></div></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Default Plot Info</label><div class="space-y-3"><input type="text" name="investigatorName" placeholder="Investigator" class="w-full p-2 border rounded-md text-sm form-input" list="investigator-list"><input type="text" name="dosage" placeholder="Default Dosage (mL/ha)" class="w-full p-2 border rounded-md text-sm form-input"><input type="text" name="weedSpecies" placeholder="Weed Species" class="w-full p-2 border rounded-md text-sm form-input"><input type="date" name="date" class="w-full p-2 border rounded-md text-sm form-input" value="${new Date().toISOString().split('T')[0]}"></div></div></div></div><div class="mt-8 p-4 bg-emerald-50 border border-emerald-100 rounded-lg"><div class="flex items-start gap-3"><i data-lucide="info" class="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5"></i><div><p class="text-sm font-semibold text-emerald-800">Randomization Strategy</p><p class="text-xs text-emerald-700">Plots will be generated for every block. One treatment must be tagged as "Control" to enable WCE calculations later.</p></div></div></div><div class="mt-8 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Generate & Randomize</button></div></form></div></div>`,
                         photoEdit: `<div id="photo-edit-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-lg mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">Edit Photo Details</h3><form id="photo-edit-form"><input type="hidden" name="trialId"><input type="hidden" name="photoIndex"><div class="mb-4"><label class="block text-sm font-medium text-gray-700">Label</label><input type="text" name="label" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm form-input"></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700">Photo Date</label><input type="date" name="date" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm form-input"></div><div class="mt-6 p-4 bg-gray-50 rounded-lg"><h4 class="text-md font-medium text-gray-800 mb-2">Weather Conditions</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><input type="text" name="temp" placeholder="Temp (°C)" class="p-2 border rounded-md text-sm form-input"><input type="text" name="humidity" placeholder="Humidity (%)" class="p-2 border rounded-md text-sm form-input"><input type="text" name="wind" placeholder="Wind (km/h)" class="p-2 border rounded-md text-sm form-input"><input type="text" name="rain" placeholder="Rain (mm)" class="p-2 border rounded-md text-sm form-input"></div></div><div class="mt-6 flex justify-end space-x-3"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button><button type="submit" class="btn-primary text-white px-4 py-2 rounded-lg">Save Changes</button></div></form></div></div>`,
                         weedId: () => {
                             const { trial } = data;
@@ -3204,17 +3285,17 @@ IMPORTANT:
                             return `<div id="weed-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl mx-auto mt-10"><h3 class="text-xl font-bold mb-4 text-slate-800">Weed Identification for: ${sanitizeHTML(trial.FormulationName)}</h3><div class="flex items-center gap-4 mb-6"><input type="file" id="weed-photos-input" multiple accept="image/*" class="hidden" data-trial-id="${trial.ID}"><label for="weed-photos-input" class="cursor-pointer btn-primary text-white px-4 py-2 rounded-lg font-semibold">Choose Files</label><button type="button" data-action="open-weed-camera" data-trial-id="${trial.ID}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-semibold">Camera</button></div><div id="weed-photo-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 h-96 overflow-y-auto bg-gray-50 p-4 rounded-lg">${safeJsonParse(trial.WeedPhotosJSON).map((p, index) => render.weedPhotoCard(p, trial.ID, index)).join('')}</div><div class="mt-6 flex justify-end"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Done</button></div></div></div>`;
                         },
                         reportPreview: `<div id="report-preview-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-3xl mx-auto mt-10 h-[90vh] flex flex-col"><h3 class="text-xl font-bold mb-4 text-slate-800">Prepare Efficacy Report</h3><div id="report-content" class="space-y-6 flex-grow overflow-y-auto pr-4">
-                            <div class="bg-teal-50 p-4 rounded-lg border border-teal-100 mb-4 flex gap-6 flex-wrap">
+                            <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 mb-4 flex gap-6 flex-wrap">
                                 <div class="flex items-center gap-3">
-                                    <input type="checkbox" id="show-photo-dates" data-action="toggle-photo-dates" class="h-4 w-4 text-teal-600 rounded" ${state.settings.showPhotoDates ? 'checked' : ''}>
-                                    <label for="show-photo-dates" class="text-sm font-medium text-teal-900">Show photo dates</label>
+                                    <input type="checkbox" id="show-photo-dates" data-action="toggle-photo-dates" class="h-4 w-4 text-emerald-600 rounded" ${state.settings.showPhotoDates ? 'checked' : ''}>
+                                    <label for="show-photo-dates" class="text-sm font-medium text-emerald-900">Show photo dates</label>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <input type="checkbox" id="include-timeline" data-action="toggle-include-timeline" class="h-4 w-4 text-teal-600 rounded" ${state.settings.includeTimeline ? 'checked' : ''}>
-                                    <label for="include-timeline" class="text-sm font-medium text-teal-900">Include Weed Status Timeline</label>
+                                    <input type="checkbox" id="include-timeline" data-action="toggle-include-timeline" class="h-4 w-4 text-emerald-600 rounded" ${state.settings.includeTimeline ? 'checked' : ''}>
+                                    <label for="include-timeline" class="text-sm font-medium text-emerald-900">Include Weed Status Timeline</label>
                                 </div>
                             </div>
-                            <div id="cover-report-section" class="hidden"><h4 class="text-md font-semibold text-slate-700">% Cover by Species</h4><div id="cover-chart-preview" class="relative h-[300px] w-full my-2 bg-slate-100 rounded-lg p-2"><canvas id="preview-cover-canvas"></canvas></div><div class="flex justify-between items-end mt-2"><label for="cover-summary-textarea" class="block text-sm font-medium text-gray-700">AI Generated Summary (Editable)</label><button id="regenerate-cover-summary" class="text-xs text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="refresh-cw" class="h-3 w-3"></i> Regenerate</button></div><textarea id="cover-summary-textarea" class="w-full p-2 border rounded-md form-input mt-1" rows="4" placeholder="Generating summary..."></textarea></div><div id="phyto-report-section" class="hidden"><h4 class="text-md font-semibold text-slate-700">% Phytotoxicity</h4><div id="phyto-chart-preview" class="relative h-[300px] w-full my-2 bg-slate-100 rounded-lg p-2"><canvas id="preview-phyto-canvas"></canvas></div><div class="flex justify-between items-end mt-2"><label for="phyto-summary-textarea" class="block text-sm font-medium text-gray-700">AI Generated Summary (Editable)</label><button id="regenerate-phyto-summary" class="text-xs text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="refresh-cw" class="h-3 w-3"></i> Regenerate</button></div><textarea id="phyto-summary-textarea" class="w-full p-2 border rounded-md form-input mt-1" rows="4" placeholder="Generating summary..."></textarea></div></div><div class="mt-6 flex justify-end gap-3 border-t pt-4"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg">Cancel</button><button id="generate-doc-from-preview" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center gap-2" style="background-color: #2b5797;"><i data-lucide="file-text" class="h-4 w-4"></i> Export to Word</button><button id="generate-pdf-from-preview" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center gap-2"><i data-lucide="download" class="h-4 w-4"></i> Generate & Download PDF</button></div></div></div>`,
+                            <div id="cover-report-section" class="hidden"><h4 class="text-md font-semibold text-slate-700">% Cover by Species</h4><div id="cover-chart-preview" class="relative h-[300px] w-full my-2 bg-slate-100 rounded-lg p-2"><canvas id="preview-cover-canvas"></canvas></div><div class="flex justify-between items-end mt-2"><label for="cover-summary-textarea" class="block text-sm font-medium text-gray-700">AI Generated Summary (Editable)</label><button id="regenerate-cover-summary" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="refresh-cw" class="h-3 w-3"></i> Regenerate</button></div><textarea id="cover-summary-textarea" class="w-full p-2 border rounded-md form-input mt-1" rows="4" placeholder="Generating summary..."></textarea></div><div id="phyto-report-section" class="hidden"><h4 class="text-md font-semibold text-slate-700">% Phytotoxicity</h4><div id="phyto-chart-preview" class="relative h-[300px] w-full my-2 bg-slate-100 rounded-lg p-2"><canvas id="preview-phyto-canvas"></canvas></div><div class="flex justify-between items-end mt-2"><label for="phyto-summary-textarea" class="block text-sm font-medium text-gray-700">AI Generated Summary (Editable)</label><button id="regenerate-phyto-summary" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="refresh-cw" class="h-3 w-3"></i> Regenerate</button></div><textarea id="phyto-summary-textarea" class="w-full p-2 border rounded-md form-input mt-1" rows="4" placeholder="Generating summary..."></textarea></div></div><div class="mt-6 flex justify-end gap-3 border-t pt-4"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg">Cancel</button><button id="generate-doc-from-preview" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center gap-2" style="background-color: #2b5797;"><i data-lucide="file-text" class="h-4 w-4"></i> Export to Word</button><button id="generate-pdf-from-preview" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center gap-2"><i data-lucide="download" class="h-4 w-4"></i> Generate & Download PDF</button></div></div></div>`,
                         qrLabel: () => {
                             const { trial, qrContent, mode } = data;
                             return `<div id="qr-label-modal" class="modal"><div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-sm mx-auto mt-20 text-center"><h3 class="text-xl font-bold mb-1 text-slate-800">${sanitizeHTML(trial.FormulationName)}</h3><p class="text-xs text-slate-400 mb-4">${mode.toUpperCase()} MODE</p><div id="qr-code-canvas" class="flex justify-center mb-4 border p-2 bg-white rounded-lg shadow-inner"></div><div class="text-left bg-slate-50 p-3 rounded text-[10px] font-mono mb-4 break-all overflow-auto max-h-24 border border-slate-200">${sanitizeHTML(qrContent).replace(/\n/g, '<br>')}</div><p class="text-xs text-slate-500 mb-6 px-4">Scan this code with a phone camera to ${mode === 'online' ? 'open the live report' : 'view the plot data'}.</p><div class="flex gap-2 justify-center"><button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 font-medium"><i data-lucide="printer" class="h-3 w-3"></i> Print Label</button><button data-action="close-modal" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium">Close</button></div></div></div>`;
@@ -3223,7 +3304,7 @@ IMPORTANT:
                             const { trial } = data;
                             if (!trial) return '';
                             const photos = safeJsonParse(trial.PhotoURLs);
-                            const photoTable = photos.length > 0 ? `<div class="mt-4"><h4 class="text-lg font-semibold mb-2 text-slate-700">Photo Log & Weather</h4><div class="overflow-x-auto rounded-lg border"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-4 py-2 text-left font-medium text-slate-500">Photo</th><th class="px-4 py-2 text-left font-medium text-slate-500">Label</th><th class="px-4 py-2 text-left font-medium text-slate-500">Date</th><th class="px-4 py-2 text-left font-medium text-slate-500">Weather</th><th class="px-4 py-2 text-left font-medium text-slate-500">Actions</th></tr></thead><tbody class="bg-white divide-y divide-gray-200">${photos.map((p, index) => { const photoUrl = p.url || p.fileData; if (!photoUrl) return ''; const proxiedUrl = photoUrl.startsWith('data:image') ? photoUrl : `https://images.weserv.nl/?url=${encodeURIComponent(photoUrl)}&w=100`; const fullSizeUrl = photoUrl.startsWith('data:image') ? '#' : photoUrl; const weather = p.weather || {}; return `<tr><td class="p-2"><a href="${fullSizeUrl}" target="_blank"><img src="${proxiedUrl}" class="h-16 w-16 object-cover rounded-md border"></a></td><td class="p-2">${sanitizeHTML(p.label) || '-'}</td><td class="p-2">${p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}</td><td class="p-2">${weather.temp ? `${weather.temp}°C, ${weather.humidity}% H, ${weather.wind} km/h` : 'N/A'}</td><td class="p-2"><button data-action="open-photo-edit-modal" data-trial-id="${trial.ID}" data-photo-index="${index}" class="text-teal-600 hover:text-teal-800 font-semibold text-xs">Edit</button></td></tr>` }).join('')}</tbody></table></div></div>` : '<p class="mt-4 text-gray-500">No photos available.</p>';
+                            const photoTable = photos.length > 0 ? `<div class="mt-4"><h4 class="text-lg font-semibold mb-2 text-slate-700">Photo Log & Weather</h4><div class="overflow-x-auto rounded-lg border"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-4 py-2 text-left font-medium text-slate-500">Photo</th><th class="px-4 py-2 text-left font-medium text-slate-500">Label</th><th class="px-4 py-2 text-left font-medium text-slate-500">Date</th><th class="px-4 py-2 text-left font-medium text-slate-500">Weather</th><th class="px-4 py-2 text-left font-medium text-slate-500">Actions</th></tr></thead><tbody class="bg-white divide-y divide-gray-200">${photos.map((p, index) => { const photoUrl = p.url || p.fileData; if (!photoUrl) return ''; const proxiedUrl = photoUrl.startsWith('data:image') ? photoUrl : `https://images.weserv.nl/?url=${encodeURIComponent(photoUrl)}&w=100`; const fullSizeUrl = photoUrl.startsWith('data:image') ? '#' : photoUrl; const weather = p.weather || {}; return `<tr><td class="p-2"><a href="${fullSizeUrl}" target="_blank"><img src="${proxiedUrl}" class="h-16 w-16 object-cover rounded-md border"></a></td><td class="p-2">${sanitizeHTML(p.label) || '-'}</td><td class="p-2">${p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}</td><td class="p-2">${weather.temp ? `${weather.temp}°C, ${weather.humidity}% H, ${weather.wind} km/h` : 'N/A'}</td><td class="p-2"><button data-action="open-photo-edit-modal" data-trial-id="${trial.ID}" data-photo-index="${index}" class="text-emerald-600 hover:text-emerald-800 font-semibold text-xs">Edit</button></td></tr>` }).join('')}</tbody></table></div></div>` : '<p class="mt-4 text-gray-500">No photos available.</p>';
                             const weedPhotos = safeJsonParse(trial.WeedPhotosJSON);
                             const weedTable = weedPhotos.length > 0 ? `<div class="mt-6"><h4 class="text-lg font-semibold mb-2 text-slate-700">Weed Identification</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${weedPhotos.map(p => { const bestMatch = p.identifications?.[0]; return `<div class="border rounded-lg p-3 bg-slate-50"><img src="https://images.weserv.nl/?url=${encodeURIComponent(p.url)}&w=300" class="rounded-md w-full h-48 object-cover mb-2"><p class="font-semibold text-sm">${sanitizeHTML(bestMatch?.name) || 'Unknown'} <em class="text-gray-500 font-normal">${sanitizeHTML(bestMatch?.commonNames?.[0]) || ''}</em></p><p class="text-xs text-gray-500">Confidence: ${bestMatch?.confidence ? (bestMatch.confidence * 100).toFixed(1) + '%' : 'N/A'}</p></div>` }).join('')}</div></div>` : '';
                             const efficacyData = safeJsonParse(trial.EfficacyDataJSON);
@@ -3248,7 +3329,7 @@ IMPORTANT:
                                 const weedDetails = obs.weedDetails || [];
                                 if (weedDetails.length === 0) {
                                     if (obs.weedCover !== undefined) {
-                                        const gridBtn = obs.photoUrl ? `<button onclick="openGridAnalysis('${trial.ID}', ${obsIdx}, '${obs.photoUrl}', ${obs.weedCover})" class="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded hover:bg-teal-200" title="Refine with grid analysis">📐</button>` : '';
+                                        const gridBtn = obs.photoUrl ? `<button onclick="openGridAnalysis('${trial.ID}', ${obsIdx}, '${obs.photoUrl}', ${obs.weedCover})" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200" title="Refine with grid analysis">📐</button>` : '';
                                         console.log(`[DEBUG Weed Cover] - Rendering weed cover: ${obs.weedCover}%`);
                                         console.log(`[DEBUG Weed Cover] - Grid button HTML:`, gridBtn);
                                         return `<tr><td class="p-2 font-semibold">${obs.daa}</td><td class="p-2 text-gray-400">—</td><td class="p-2 text-gray-400">—</td><td class="p-2"><span class="px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">${obs.weedCover}%</span> <span class="text-xs text-gray-400">(${obs.weedCoverMode || 'auto'})</span></td><td class="p-2">${sanitizeHTML(obs.notes || '')}</td><td class="p-2 text-center">${gridBtn}</td></tr>`;
@@ -3260,7 +3341,7 @@ IMPORTANT:
                                     const coverCell = idx === 0 && obs.weedCover !== undefined
                                         ? `<span class="px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">${obs.weedCover}%</span> <span class="text-xs text-gray-400">(${obs.weedCoverMode || 'auto'})</span>`
                                         : '<span class="text-gray-300">—</span>';
-                                    const gridBtn = idx === 0 && obs.photoUrl ? `<button onclick="openGridAnalysis('${trial.ID}', ${obsIdx}, '${obs.photoUrl}', ${obs.weedCover || 0})" class="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded hover:bg-teal-200" title="Refine with grid">📐</button>` : '';
+                                    const gridBtn = idx === 0 && obs.photoUrl ? `<button onclick="openGridAnalysis('${trial.ID}', ${obsIdx}, '${obs.photoUrl}', ${obs.weedCover || 0})" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200" title="Refine with grid">📐</button>` : '';
                                     if (idx === 0) {
                                         console.log(`[DEBUG Weed Cover] - Rendering cover cell for first weed detail:`, coverCell);
                                         console.log(`[DEBUG Weed Cover] - Grid button:`, gridBtn);
@@ -3272,7 +3353,7 @@ IMPORTANT:
                             // Statistics Rendering Logic
                             let statsContent = `<div class="p-10 flex flex-col items-center justify-center text-gray-500 gap-4">
                                 <p>No statistical data available yet.</p>
-                                <button onclick="calculateAndSaveTrialStats('${trial.ID}')" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm font-semibold flex items-center gap-2">
+                                <button onclick="calculateAndSaveTrialStats('${trial.ID}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm font-semibold flex items-center gap-2">
                                     <i data-lucide="calculator" class="h-4 w-4"></i> Calculate Statistics
                                 </button>
                             </div>`;
@@ -3286,14 +3367,14 @@ IMPORTANT:
                                 let anovaContent = '';
                                 if (stats.anovaResults && stats.anovaResults.anovaTable) {
                                     const at = stats.anovaResults.anovaTable;
-                                    anovaContent = `<div class="mb-6"><h4 class="text-md font-bold text-slate-800 mb-2 flex items-center gap-2">ANOVA Results (WCE) <span class="bg-teal-100 text-teal-800 text-[10px] px-2 py-0.5 rounded-full uppercase">Computed: ${new Date(stats.calculatedAt).toLocaleDateString()}</span></h4><div class="overflow-x-auto border rounded-lg mb-4"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Source</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">DF</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">SS</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">MS</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">F</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">P > F</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sig</th></tr></thead><tbody class="divide-y divide-gray-200 bg-white">
+                                    anovaContent = `<div class="mb-6"><h4 class="text-md font-bold text-slate-800 mb-2 flex items-center gap-2">ANOVA Results (WCE) <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full uppercase">Computed: ${new Date(stats.calculatedAt).toLocaleDateString()}</span></h4><div class="overflow-x-auto border rounded-lg mb-4"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Source</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">DF</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">SS</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">MS</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">F</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">P > F</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sig</th></tr></thead><tbody class="divide-y divide-gray-200 bg-white">
                                     ${[at.treatment, at.block, at.error, at.total].map(row => `<tr><td class="px-3 py-2 font-medium">${row.source}</td><td class="px-3 py-2 text-right text-gray-500">${row.df}</td><td class="px-3 py-2 text-right text-gray-500">${row.ss.toFixed(2)}</td><td class="px-3 py-2 text-right text-gray-500">${row.ms ? row.ms.toFixed(2) : ''}</td><td class="px-3 py-2 text-right text-gray-500">${row.f ? row.f.toFixed(2) : ''}</td><td class="px-3 py-2 text-right text-gray-500">${row.p ? row.p.toFixed(4) : ''}</td><td class="px-3 py-2 font-bold">${row.sig || ''}</td></tr>`).join('')}
                                     </tbody></table></div><div class="grid grid-cols-2 gap-4 text-xs text-gray-600 mb-4"><div class="p-2 bg-slate-50 rounded"><strong>CV:</strong> ${stats.anovaResults.diagnostics.cv.toFixed(2)}%</div><div class="p-2 bg-slate-50 rounded"><strong>R²:</strong> ${stats.anovaResults.diagnostics.r_squared.toFixed(4)}</div></div>`;
                                 }
 
                                 let lsdContent = '';
                                 if (stats.lsdResults && stats.lsdResults.groupings) {
-                                    lsdContent = `<div class="mb-6"><h4 class="text-md font-bold text-slate-800 mb-2">Detailed Groupings (Fisher's LSD)</h4><p class="text-xs text-gray-500 mb-2">Alpha = ${stats.lsdResults.alpha}, LSD = ${stats.lsdResults.lsd.toFixed(2)}</p><div class="overflow-x-auto border rounded-lg"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Treatment</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Mean WCE</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Group</th></tr></thead><tbody class="divide-y divide-gray-200 bg-white">${stats.lsdResults.groupings.map(g => `<tr><td class="px-3 py-2 font-medium">${sanitizeHTML(g.name)}</td><td class="px-3 py-2 text-right">${g.mean.toFixed(2)}%</td><td class="px-3 py-2 font-bold text-teal-700">${g.grouping}</td></tr>`).join('')}</tbody></table></div></div>`;
+                                    lsdContent = `<div class="mb-6"><h4 class="text-md font-bold text-slate-800 mb-2">Detailed Groupings (Fisher's LSD)</h4><p class="text-xs text-gray-500 mb-2">Alpha = ${stats.lsdResults.alpha}, LSD = ${stats.lsdResults.lsd.toFixed(2)}</p><div class="overflow-x-auto border rounded-lg"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Treatment</th><th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Mean WCE</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Group</th></tr></thead><tbody class="divide-y divide-gray-200 bg-white">${stats.lsdResults.groupings.map(g => `<tr><td class="px-3 py-2 font-medium">${sanitizeHTML(g.name)}</td><td class="px-3 py-2 text-right">${g.mean.toFixed(2)}%</td><td class="px-3 py-2 font-bold text-emerald-700">${g.grouping}</td></tr>`).join('')}</tbody></table></div></div>`;
                                 }
 
                                 statsContent = `<div class="p-4">${wceTable}${anovaContent}${lsdContent}</div>`;
@@ -3304,7 +3385,7 @@ IMPORTANT:
                                 <div class="flex justify-between items-center mb-4 border-b pb-4">
                                     <h3 class="text-2xl font-bold text-slate-800 truncate">${sanitizeHTML(trial.FormulationName)}</h3>
                                     <div class="flex space-x-4">
-                                        <button onclick="window.switchTrialDetailTab('report')" data-tab="report" class="trial-detail-tab-btn text-teal-600 border-b-2 border-teal-600 font-bold pb-1 text-sm transition">Report View</button>
+                                        <button onclick="window.switchTrialDetailTab('report')" data-tab="report" class="trial-detail-tab-btn text-emerald-600 border-b-2 border-emerald-600 font-bold pb-1 text-sm transition">Report View</button>
                                         <button onclick="window.switchTrialDetailTab('stats')" data-tab="stats" class="trial-detail-tab-btn text-gray-500 pb-1 text-sm hover:text-gray-700 transition">Statistics</button>
                                     </div>
                                 </div>
@@ -3322,14 +3403,14 @@ IMPORTANT:
 
                                 </div>
                                 <div class="mt-8 border-t pt-6">
-                                <div class="bg-teal-50 p-4 rounded-lg mb-6 flex flex-wrap gap-6 items-center border border-teal-100">
+                                <div class="bg-emerald-50 p-4 rounded-lg mb-6 flex flex-wrap gap-6 items-center border border-emerald-100">
                                     <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="show-photo-dates-detail" data-action="toggle-photo-dates" class="h-4 w-4 text-teal-600 rounded" ${state.settings.showPhotoDates ? 'checked' : ''}>
-                                        <label for="show-photo-dates-detail" class="text-sm font-medium text-teal-900">Show photo dates</label>
+                                        <input type="checkbox" id="show-photo-dates-detail" data-action="toggle-photo-dates" class="h-4 w-4 text-emerald-600 rounded" ${state.settings.showPhotoDates ? 'checked' : ''}>
+                                        <label for="show-photo-dates-detail" class="text-sm font-medium text-emerald-900">Show photo dates</label>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="include-timeline-detail" data-action="toggle-include-timeline" class="h-4 w-4 text-teal-600 rounded" ${state.settings.includeTimeline ? 'checked' : ''}>
-                                        <label for="include-timeline-detail" class="text-sm font-medium text-teal-900">Include Weed Status Timeline</label>
+                                        <input type="checkbox" id="include-timeline-detail" data-action="toggle-include-timeline" class="h-4 w-4 text-emerald-600 rounded" ${state.settings.includeTimeline ? 'checked' : ''}>
+                                        <label for="include-timeline-detail" class="text-sm font-medium text-emerald-900">Include Weed Status Timeline</label>
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap justify-center gap-3 flex-shrink-0">
@@ -3337,8 +3418,8 @@ IMPORTANT:
                                     <button data-action="export-pdf-no-ingredients" data-id="${trial.ID}" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm transition hover:bg-gray-300">PDF (No Ing.)</button>
                                     <button data-action="export-pdf-weeds-ingredients" data-id="${trial.ID}" class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-blue-200">PDF (Weeds + Ing.)</button>
                                     <button data-action="export-pdf-weeds" data-id="${trial.ID}" class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-blue-200">PDF (Weeds)</button>
-                                    ${hasEfficacyData ? `<button data-action="export-pdf-efficacy-no-ingredients" data-id="${trial.ID}" class="bg-teal-100 text-teal-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-teal-200">Full Report (No Ing.)</button>` : ''}
-                                    ${hasEfficacyData ? `<button data-action="export-pdf-with-report" data-id="${trial.ID}" class="bg-teal-100 text-teal-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-teal-200">Full Report (w/ Ing.)</button>` : ''}
+                                    ${hasEfficacyData ? `<button data-action="export-pdf-efficacy-no-ingredients" data-id="${trial.ID}" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-emerald-200">Full Report (No Ing.)</button>` : ''}
+                                    ${hasEfficacyData ? `<button data-action="export-pdf-with-report" data-id="${trial.ID}" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-emerald-200">Full Report (w/ Ing.)</button>` : ''}
                                      <button data-action="export-scientific-trial-report-no-ing" data-id="${trial.ID}" class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-indigo-200">Scientific Report (No Ing.)</button>
                                      <button data-action="export-scientific-trial-report-with-ing" data-id="${trial.ID}" class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-indigo-200">Scientific Report (w/ Ing.)</button>
                                      <button data-action="export-scientific-trial-report-doc-no-ing" data-id="${trial.ID}" class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-blue-200">DOC (No Ing.)</button>
@@ -3354,7 +3435,7 @@ IMPORTANT:
                                 console.error('qrModeChoice template Error: Trial data missing!', data);
                                 return `<div class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20 text-center text-red-600 font-bold">Error: Trial data not found. Please close and try again.</div></div>`;
                             }
-                            return `<div id="qr-mode-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">Choose QR Code Type</h3><p class="text-sm text-gray-600 mb-6">Select how you want to generate the QR code for: <strong>${sanitizeHTML(trial.FormulationName)}</strong></p><div class="flex flex-col space-y-4"><button data-action="generate-qr-final" data-id="${trial.ID}" data-mode="offline" class="w-full text-left p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-teal-50 hover:border-teal-200 transition"><p class="font-bold text-slate-800">Offline Mode</p><p class="text-xs text-slate-500 mt-1">Encodes data directly in the QR. No internet needed to scan, but content is limited.</p></button><button data-action="generate-qr-final" data-id="${trial.ID}" data-mode="online" class="w-full text-left p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-teal-50 hover:border-teal-200 transition"><p class="font-bold text-slate-800">Online Mode (Live)</p><p class="text-xs text-slate-500 mt-1">Links to a live web page. Allows photos, ingredients, and updates without re-printing.</p></button></div><div class="mt-6 flex justify-end"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button></div></div></div>`;
+                            return `<div id="qr-mode-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-auto mt-20"><h3 class="text-lg font-bold mb-4 text-slate-800">Choose QR Code Type</h3><p class="text-sm text-gray-600 mb-6">Select how you want to generate the QR code for: <strong>${sanitizeHTML(trial.FormulationName)}</strong></p><div class="flex flex-col space-y-4"><button data-action="generate-qr-final" data-id="${trial.ID}" data-mode="offline" class="w-full text-left p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 transition"><p class="font-bold text-slate-800">Offline Mode</p><p class="text-xs text-slate-500 mt-1">Encodes data directly in the QR. No internet needed to scan, but content is limited.</p></button><button data-action="generate-qr-final" data-id="${trial.ID}" data-mode="online" class="w-full text-left p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 transition"><p class="font-bold text-slate-800">Online Mode (Live)</p><p class="text-xs text-slate-500 mt-1">Links to a live web page. Allows photos, ingredients, and updates without re-printing.</p></button></div><div class="mt-6 flex justify-end"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg transition hover:bg-slate-300">Cancel</button></div></div></div>`;
                         },
                         liveQrSettings: () => {
                             const { trial } = data;
@@ -3366,7 +3447,7 @@ IMPORTANT:
                             }
                             const fieldsHtml = Object.keys(state.settings.qrOnlineFields).map(key => {
                                 const label = key.replace('show', '').replace(/([A-Z])/g, ' $1');
-                                return `<label class="flex items-center gap-2"><input type="checkbox" name="${key}" ${currentSettings[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"> ${label}</label>`;
+                                return `<label class="flex items-center gap-2"><input type="checkbox" name="${key}" ${currentSettings[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"> ${label}</label>`;
                             }).join('');
 
                             return `<div id="live-qr-modal" class="modal"><div class="modal-content bg-white p-8 rounded-lg shadow-xl w-full max-w-lg mx-auto mt-10"><h3 class="text-xl font-bold mb-2 text-slate-800">Live QR Settings</h3><p class="text-sm text-gray-500 mb-6 border-b pb-2">Individual content control for: <strong>${sanitizeHTML(trial.FormulationName)}</strong></p><form id="live-qr-settings-form" data-id="${trial.ID}" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">${fieldsHtml}</form><div class="mt-8 flex justify-end gap-3 border-t pt-4"><button type="button" data-action="close-modal" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg">Cancel</button><button type="button" data-action="save-live-qr-settings-final" class="btn-primary text-white px-5 py-2 rounded-lg">Save Settings</button></div></div></div>`;
@@ -3423,7 +3504,7 @@ IMPORTANT:
                     const topControlList = document.getElementById('top-control-days-list');
                     if (topControlList) {
                         topControlList.innerHTML = trialsWithDuration.slice(0, 10).map(t =>
-                            `<li class="flex justify-between items-center"><span class="text-slate-600 truncate w-2/3">${sanitizeHTML(t.FormulationName)}</span><span class="font-bold text-teal-700">${t.computedDuration} Days</span></li>`
+                            `<li class="flex justify-between items-center"><span class="text-slate-600 truncate w-2/3">${sanitizeHTML(t.FormulationName)}</span><span class="font-bold text-emerald-700">${t.computedDuration} Days</span></li>`
                         ).join('') || '<p class="text-slate-500">No trials active.</p>';
                     }
 
@@ -3618,7 +3699,7 @@ IMPORTANT:
                         const photoUrl = p.url || p.fileData;
                         if (typeof photoUrl !== 'string' || !photoUrl) return '';
                         const proxiedUrl = photoUrl.startsWith('data:image') ? photoUrl : `https://images.weserv.nl/?url=${encodeURIComponent(photoUrl)}&w=100&h=100&fit=cover`;
-                        return `<img src="${proxiedUrl}" class="h-16 w-16 object-cover rounded-md border ${p.isWeed ? 'border-teal-400' : ''}" alt="${sanitizeHTML(p.label) || 'Trial photo'}">`;
+                        return `<img src="${proxiedUrl}" class="h-16 w-16 object-cover rounded-md border ${p.isWeed ? 'border-emerald-400' : ''}" alt="${sanitizeHTML(p.label) || 'Trial photo'}">`;
                     }).join('');
                     const resultValue = String(trial.Result || '');
                     const resultClasses = `py-1 px-2 rounded-full text-xs font-semibold result-${resultValue.toLowerCase() || 'none'}`;
@@ -3628,13 +3709,13 @@ IMPORTANT:
 
                     // Find Project Name if exists
                     const project = trial.ProjectID ? state.projects.find(p => p.ID === trial.ProjectID) : null;
-                    const projectNameHtml = project ? `<div class="text-xs text-teal-600 font-bold mb-1 uppercase tracking-wide flex items-center gap-1"><i data-lucide="layers" class="h-3 w-3"></i> ${sanitizeHTML(project.Name)}</div>` : '';
+                    const projectNameHtml = project ? `<div class="text-xs text-emerald-600 font-bold mb-1 uppercase tracking-wide flex items-center gap-1"><i data-lucide="layers" class="h-3 w-3"></i> ${sanitizeHTML(project.Name)}</div>` : '';
 
-                    return `<div class="bg-white rounded-xl shadow-lg flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-transparent hover:border-teal-500/50">
+                    return `<div class="bg-white rounded-xl shadow-lg flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-transparent hover:border-emerald-500/50">
                                 <div class="p-5 flex-grow">
                                     <div class="flex items-start justify-between">
                                         <div class="flex items-start gap-3">
-                                            ${showCheckbox ? `<input type="checkbox" data-action="select-trial" data-id="${trial.ID}" class="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" ${isChecked ? 'checked' : ''}>` : ''}
+                                            ${showCheckbox ? `<input type="checkbox" data-action="select-trial" data-id="${trial.ID}" class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${isChecked ? 'checked' : ''}>` : ''}
                                             <div class="cursor-pointer" data-action="view-trial" data-id="${trial.ID}">
                                                 ${projectNameHtml}
                                                 <h3 class="font-bold text-lg text-slate-800">${sanitizeHTML(formulationName)}</h3>
@@ -3643,7 +3724,7 @@ IMPORTANT:
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <button data-action="generate-qr-label" data-id="${trial.ID}" class="p-1 rounded-full hover:bg-teal-50 text-teal-600" title="Plot Label QR"><i data-lucide="qr-code" class="h-4 w-4"></i></button>
+                                            <button data-action="generate-qr-label" data-id="${trial.ID}" class="p-1 rounded-full hover:bg-emerald-50 text-emerald-600" title="Plot Label QR"><i data-lucide="qr-code" class="h-4 w-4"></i></button>
                                             <div class="${resultClasses} p-0">${resultSelect}</div>
                                             <div class="relative">
                                                 <button class="p-1 rounded-full hover:bg-slate-100" data-action="toggle-card-menu" data-id="${trial.ID}"><i data-lucide="more-vertical" class="h-4 w-4"></i></button>
@@ -3657,7 +3738,7 @@ IMPORTANT:
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 mt-2">
-                                        <input type="checkbox" data-action="toggle-completed" data-id="${trial.ID}" id="completed-${trial.ID}" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" ${String(trial.IsCompleted).toLowerCase() === 'true' ? 'checked' : ''}>
+                                        <input type="checkbox" data-action="toggle-completed" data-id="${trial.ID}" id="completed-${trial.ID}" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${String(trial.IsCompleted).toLowerCase() === 'true' ? 'checked' : ''}>
                                         <label for="completed-${trial.ID}" class="text-xs font-medium text-gray-700">Mark as Completed</label>
                                     </div>
                                     <div class="mt-4 grid grid-cols-2 gap-x-4 text-sm text-gray-600">
@@ -3669,7 +3750,7 @@ IMPORTANT:
                                         <div class="flex items-center gap-2">
                                             <div class="w-2 h-2 rounded-full ${String(trial.IsLive).toLowerCase() !== 'false' ? 'bg-green-500' : 'bg-slate-400'}"></div>
                                             <span class="text-[10px] font-bold ${String(trial.IsLive).toLowerCase() !== 'false' ? 'text-green-700' : 'text-slate-500'}">${String(trial.IsLive).toLowerCase() !== 'false' ? 'LIVE' : 'INACTIVE'}</span>
-                                            <button data-action="manage-live-qr" data-id="${trial.ID}" class="text-teal-600 hover:text-teal-800" title="Manage Live QR Content"><i data-lucide="settings-2" class="h-3 w-3"></i></button>
+                                            <button data-action="manage-live-qr" data-id="${trial.ID}" class="text-emerald-600 hover:text-emerald-800" title="Manage Live QR Content"><i data-lucide="settings-2" class="h-3 w-3"></i></button>
                                         </div>
                                         <button data-action="toggle-live-status" data-id="${trial.ID}" class="text-[10px] ${String(trial.IsLive).toLowerCase() !== 'false' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'} px-2 py-0.5 border rounded font-bold hover:opacity-80 transition">${String(trial.IsLive).toLowerCase() !== 'false' ? 'Deactivate' : 'Activate'}</button>
                                     </div>
@@ -3698,7 +3779,7 @@ IMPORTANT:
                         identificationHTML = `<div class="text-red-500 text-xs font-semibold flex flex-col items-center gap-1">
                             <i data-lucide="alert-circle" class="h-4 w-4"></i>
                             Sync Failed (Offline?)
-                            <button data-action="retry-sync" data-id="${syncItem.id}" class="mt-1 text-teal-600 underline">Retry</button>
+                            <button data-action="retry-sync" data-id="${syncItem.id}" class="mt-1 text-emerald-600 underline">Retry</button>
                         </div>`;
                     }
 
@@ -3719,8 +3800,8 @@ IMPORTANT:
                     }
                     return `<div class="border rounded-lg p-2 bg-white flex flex-col text-center relative"><img src="${proxiedUrl}" class="rounded-md w-full h-40 object-cover mb-2"><div class="mt-auto max-h-32 overflow-y-auto">${identificationHTML}</div><button data-action="delete-weed-photo" data-trial-id="${trialId}" data-index="${index}" class="absolute top-1 right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold">&times;</button></div>`;
                 },
-                ingredients: (data = state.ingredients) => { const el = document.getElementById('ingredients-list'); if (el) el.innerHTML = `<ul class="divide-y divide-gray-200">${[...(data || [])].filter(ing => ing && ing.Name).sort((a, b) => String(b.ID).localeCompare(String(a.ID), undefined, { numeric: true })).map(ing => `<li class="py-3 flex justify-between items-center"><div><p class="font-medium">${sanitizeHTML(ing.Name)}</p><p class="text-sm text-gray-500">${CURRENCY_SYMBOL}${(parseFloat(ing.Cost) || 0).toFixed(2)} / ${sanitizeHTML(ing.Unit)}</p></div><div class="flex gap-4"><button data-action="edit" data-type="ingredient" data-id="${ing.ID}" class="text-teal-600 hover:text-teal-800 font-bold">Edit</button><button data-action="delete" data-type="ingredient" data-id="${ing.ID}" class="text-red-500 hover:text-red-700 font-bold">&times;</button></div></li>`).join('') || '<p class="text-gray-500">No ingredients.</p>'}</ul>`; },
-                formulations: (data = state.formulations) => { const el = document.getElementById('formulations-list'); if (el) el.innerHTML = [...(data || [])].sort((a, b) => String(b.ID).localeCompare(String(a.ID), undefined, { numeric: true })).map(form => `<div class="bg-white p-6 rounded-xl shadow-lg relative transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-transparent hover:border-teal-500/50"><div class="absolute top-4 right-4 flex gap-2"><button data-action="duplicate" data-type="formulation" data-id="${form.ID}" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-md text-sm hover:bg-slate-300">Duplicate</button><button data-action="edit" data-type="formulation" data-id="${form.ID}" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-md text-sm hover:bg-teal-200">Edit</button><button data-action="delete" data-type="formulation" data-id="${form.ID}" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button></div><h3 class="font-bold text-lg text-slate-800">${sanitizeHTML(form.Name)}</h3><div class="mt-2 text-sm text-gray-600"><ul class="list-disc list-inside">${safeJsonParse(form.IngredientsJSON).map(ing => `<li>${sanitizeHTML(ing.name)} (${ing.quantity} ${ing.unit})</li>`).join('')}</ul>${form.Notes ? `<p class="mt-2"><strong>Notes:</strong> ${sanitizeHTML(form.Notes)}</p>` : ''}</div><p class="mt-4 font-semibold text-teal-700">Cost: ${CURRENCY_SYMBOL}${parseFloat(form.EstimatedCost || 0).toFixed(2)}</p></div>`).join('') || '<p class="text-gray-500 col-span-full">No formulations found.</p>'; },
+                ingredients: (data = state.ingredients) => { const el = document.getElementById('ingredients-list'); if (el) el.innerHTML = `<ul class="divide-y divide-gray-200">${[...(data || [])].filter(ing => ing && ing.Name).sort((a, b) => String(b.ID).localeCompare(String(a.ID), undefined, { numeric: true })).map(ing => `<li class="py-3 flex justify-between items-center"><div><p class="font-medium">${sanitizeHTML(ing.Name)}</p><p class="text-sm text-gray-500">${CURRENCY_SYMBOL}${(parseFloat(ing.Cost) || 0).toFixed(2)} / ${sanitizeHTML(ing.Unit)}</p></div><div class="flex gap-4"><button data-action="edit" data-type="ingredient" data-id="${ing.ID}" class="text-emerald-600 hover:text-emerald-800 font-bold">Edit</button><button data-action="delete" data-type="ingredient" data-id="${ing.ID}" class="text-red-500 hover:text-red-700 font-bold">&times;</button></div></li>`).join('') || '<p class="text-gray-500">No ingredients.</p>'}</ul>`; },
+                formulations: (data = state.formulations) => { const el = document.getElementById('formulations-list'); if (el) el.innerHTML = [...(data || [])].sort((a, b) => String(b.ID).localeCompare(String(a.ID), undefined, { numeric: true })).map(form => `<div class="bg-white p-6 rounded-xl shadow-lg relative transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-transparent hover:border-emerald-500/50"><div class="absolute top-4 right-4 flex gap-2"><button data-action="duplicate" data-type="formulation" data-id="${form.ID}" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-md text-sm hover:bg-slate-300">Duplicate</button><button data-action="edit" data-type="formulation" data-id="${form.ID}" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-sm hover:bg-emerald-200">Edit</button><button data-action="delete" data-type="formulation" data-id="${form.ID}" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button></div><h3 class="font-bold text-lg text-slate-800">${sanitizeHTML(form.Name)}</h3><div class="mt-2 text-sm text-gray-600"><ul class="list-disc list-inside">${safeJsonParse(form.IngredientsJSON).map(ing => `<li>${sanitizeHTML(ing.name)} (${ing.quantity} ${ing.unit})</li>`).join('')}</ul>${form.Notes ? `<p class="mt-2"><strong>Notes:</strong> ${sanitizeHTML(form.Notes)}</p>` : ''}</div><p class="mt-4 font-semibold text-emerald-700">Cost: ${CURRENCY_SYMBOL}${parseFloat(form.EstimatedCost || 0).toFixed(2)}</p></div>`).join('') || '<p class="text-gray-500 col-span-full">No formulations found.</p>'; },
                 trials: (data = state.trials) => {
                     // Separate trials
                     const standardTrials = (data || []).filter(t => !t.ProjectID);
@@ -3749,18 +3830,18 @@ IMPORTANT:
                                 const project = state.projects.find(p => p.ID === pid) || { Name: 'Unknown Project' };
                                 const trialsHtml = groups[pid].map(t => render.trialCard(t, true)).join('');
                                 const isDraft = project.Status === 'Draft';
-                                const statusColor = isDraft ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700';
+                                const statusColor = isDraft ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
 
                                 return `
                                     <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white mb-4">
                                         <!-- Accordion Header / Project Card -->
                                         <div class="p-4 bg-slate-50 cursor-pointer flex justify-between items-center group" onclick="toggleProjectAccordion('${pid}')">
                                             <div class="flex items-center gap-4">
-                                                <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-teal-600">
+                                                <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-emerald-600">
                                                     <i data-lucide="layers" class="h-6 w-6"></i>
                                                 </div>
                                                 <div>
-                                                    <h3 class="text-lg font-bold text-slate-800 group-hover:text-teal-700 transition-colors">${sanitizeHTML(project.Name)}</h3>
+                                                    <h3 class="text-lg font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">${sanitizeHTML(project.Name)}</h3>
                                                     <div class="flex items-center gap-3 text-sm text-slate-500 mt-1">
                                                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}">${project.Status || 'Active'}</span>
                                                         <span>${groups[pid].length} Plots</span>
@@ -3769,7 +3850,7 @@ IMPORTANT:
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="text-slate-400 group-hover:text-teal-600 transition-colors">
+                                            <div class="text-slate-400 group-hover:text-emerald-600 transition-colors">
                                                 <i id="icon-${pid}" data-lucide="chevron-down" class="h-6 w-6 transition-transform duration-300"></i>
                                             </div>
                                         </div>
@@ -3835,10 +3916,10 @@ IMPORTANT:
                             document.querySelectorAll('[data-action="switch-trials-tab"]').forEach(t => {
                                 if (t.dataset.tab === target) {
                                     t.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                                    t.classList.add('border-teal-500', 'text-teal-600');
+                                    t.classList.add('border-emerald-500', 'text-emerald-600');
                                 } else {
                                     t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                                    t.classList.remove('border-teal-500', 'text-teal-600');
+                                    t.classList.remove('border-emerald-500', 'text-emerald-600');
                                 }
                             });
 
@@ -3870,14 +3951,14 @@ IMPORTANT:
                         ? projects.map(p => render.projectCard(p)).join('')
                         : `<div class="col-span-full text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200">
                                <p class="text-slate-500 mb-4">No RCBD Projects yet.</p>
-                               <button data-action="open-project-modal" class="text-teal-600 font-bold hover:underline">Create your first project</button>
+                               <button data-action="open-project-modal" class="text-emerald-600 font-bold hover:underline">Create your first project</button>
                            </div>`;
                     lucide.createIcons();
                 },
                 projectCard: (p) => {
                     const projectBlocks = (state.blocks || []).filter(b => b.ProjectID === p.ID);
                     const projectTrials = (state.trials || []).filter(t => t.ProjectID === p.ID);
-                    const statusClass = p.Status === 'Draft' ? 'bg-amber-100 text-amber-700' : p.Status === 'Finalized' ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-700';
+                    const statusClass = p.Status === 'Draft' ? 'bg-amber-100 text-amber-700' : p.Status === 'Finalized' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700';
 
                     return `
                         <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 hover:shadow-lg transition-shadow cursor-pointer" onclick="if(!event.target.closest('button')) openProjectDashboard('${p.ID}')">
@@ -3906,7 +3987,7 @@ IMPORTANT:
                             </div>
                             <div class="pt-4 border-t border-slate-50 flex justify-between items-center">
                                 <span class="text-[10px] text-slate-400">Created: ${new Date(p.CreatedAt).toLocaleDateString()}</span>
-                                <span class="text-teal-600 font-bold text-sm">View Dashboard <i data-lucide="chevron-right" class="h-4 w-4 inline"></i></span>
+                                <span class="text-emerald-600 font-bold text-sm">View Dashboard <i data-lucide="chevron-right" class="h-4 w-4 inline"></i></span>
                             </div>
                         </div>
                     `;
@@ -3965,7 +4046,7 @@ IMPORTANT:
                             <span class="font-bold text-slate-800">${trials.length}</span>
                         </div>
                         <hr class="my-3 border-slate-200">
-                        <button onclick="openScientificReport('${projectId}'); return false;" class="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white px-4 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                        <button onclick="openScientificReport('${projectId}'); return false;" class="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white px-4 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
                             <i data-lucide="bar-chart-4" class="h-5 w-5"></i>
                             <span>📊 Scientific Report (New!)</span>
                         </button>
@@ -3981,13 +4062,13 @@ IMPORTANT:
                                 <button data-action="add-block" class="w-full text-left px-4 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 text-slate-700 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}" ${isLocked ? 'disabled' : ''}>
                                     <i data-lucide="plus" class="h-4 w-4"></i> Add Block
                                 </button>
-                                <button data-action="open-randomize-modal" class="w-full text-left px-4 py-2 rounded-lg hover:bg-teal-50 text-teal-700 font-semibold flex items-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}" ${isLocked ? 'disabled' : ''}>
+                                <button data-action="open-randomize-modal" class="w-full text-left px-4 py-2 rounded-lg hover:bg-emerald-50 text-emerald-700 font-semibold flex items-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}" ${isLocked ? 'disabled' : ''}>
                                     <i data-lucide="shuffle" class="h-4 w-4"></i> Randomize Layout
                                 </button>
                                 <button data-action="open-protocol-modal" class="w-full text-left px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700 font-semibold flex items-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}" ${isLocked ? 'disabled' : ''}>
                                     <i data-lucide="clipboard-list" class="h-4 w-4"></i> Protocol Settings
                                 </button>
-                                <button data-action="run-analysis" data-id="${projectId}" class="w-full text-left px-4 py-2 rounded-lg hover:bg-teal-50 text-teal-700 font-semibold flex items-center gap-2">
+                                <button data-action="run-analysis" data-id="${projectId}" class="w-full text-left px-4 py-2 rounded-lg hover:bg-emerald-50 text-emerald-700 font-semibold flex items-center gap-2">
                                     <i data-lucide="bar-chart-2" class="h-4 w-4"></i> ${isLocked ? 'Refresh Report' : 'Run Analysis'}
                                 </button>
                                 <button data-action="recalculate-daa" data-id="${projectId}" class="w-full text-left px-4 py-2 rounded-lg hover:bg-amber-50 text-amber-700 font-semibold flex items-center gap-2">
@@ -4039,7 +4120,7 @@ IMPORTANT:
                                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                         <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                            <i data-lucide="line-chart" class="h-4 w-4 text-teal-500"></i>
+                                            <i data-lucide="line-chart" class="h-4 w-4 text-emerald-500"></i>
                                             WCE (%) Over Time
                                         </h4>
                                         <div class="h-[300px]">
@@ -4048,7 +4129,7 @@ IMPORTANT:
                                     </div>
                                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                         <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                            <i data-lucide="bar-chart-2" class="h-4 w-4 text-teal-500"></i>
+                                            <i data-lucide="bar-chart-2" class="h-4 w-4 text-emerald-500"></i>
                                             Treatment Performance (Final DAT)
                                         </h4>
                                         <div class="h-[300px]">
@@ -4078,14 +4159,14 @@ IMPORTANT:
                             if (result.treatmentStats && Array.isArray(result.treatmentStats)) {
                                 rows = result.treatmentStats.map(ts => {
                                     const tr = state.formulations.find(f => f.ID === ts.treatmentId) || { Name: 'Unknown' };
-                                    let rankClass = ts.rank === 'Superior' ? 'bg-teal-100 text-teal-700' : ts.rank === 'Inferior' ? 'bg-red-100 text-red-700' : ts.rank === 'Control' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700';
+                                    let rankClass = ts.rank === 'Superior' ? 'bg-emerald-100 text-emerald-700' : ts.rank === 'Inferior' ? 'bg-red-100 text-red-700' : ts.rank === 'Control' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700';
 
                                     return `
                                         <tr class="border-b last:border-0 hover:bg-slate-50 transition-colors">
                                             <td class="p-4 font-semibold text-slate-800">${sanitizeHTML(tr.Name)}</td>
                                             <td class="p-4 text-center">${ts.mean.toFixed(2)} ± ${ts.sd.toFixed(2)}</td>
                                             <td class="p-4 text-center text-slate-500">${ts.cv ? ts.cv.toFixed(1) + '%' : '-'}</td>
-                                            <td class="p-4 text-center font-bold text-teal-600">${ts.wce.toFixed(1)}%</td>
+                                            <td class="p-4 text-center font-bold text-emerald-600">${ts.wce.toFixed(1)}%</td>
                                             <td class="p-4 text-right">
                                                 <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${rankClass}">${ts.rank}</span>
                                             </td>
@@ -4182,7 +4263,7 @@ IMPORTANT:
                          <!-- 1. Protocol & Conditions Summary -->
                          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                              <h3 class="font-bold text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
-                                 <i data-lucide="clipboard-list" class="h-5 w-5 text-teal-600"></i>
+                                 <i data-lucide="clipboard-list" class="h-5 w-5 text-emerald-600"></i>
                                  Trial Conditions & Protocol
                              </h3>
                              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
@@ -4236,7 +4317,7 @@ IMPORTANT:
                          <!-- 2. Visual Analysis Charts -->
                          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                              <h3 class="font-bold text-slate-800 border-b pb-2 mb-6 flex items-center gap-2">
-                                 <i data-lucide="bar-chart-2" class="h-5 w-5 text-teal-600"></i>
+                                 <i data-lucide="bar-chart-2" class="h-5 w-5 text-emerald-600"></i>
                                  Visual Analysis
                              </h3>
                              <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -4262,7 +4343,7 @@ IMPORTANT:
                          <!-- 3. Detailed Efficacy & Safety Analysis -->
                          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                              <h3 class="font-bold text-slate-800 border-b pb-2 mb-6 flex items-center gap-2">
-                                 <i data-lucide="activity" class="h-5 w-5 text-teal-600"></i>
+                                 <i data-lucide="activity" class="h-5 w-5 text-emerald-600"></i>
                                  Detailed Safety & Species Analysis
                              </h3>
                              <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -4337,7 +4418,7 @@ IMPORTANT:
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-3 font-medium text-slate-700">${g.name}</td>
                                                         <td class="p-3 text-center">${g.mean.toFixed(2)}</td>
-                                                        <td class="p-3 text-center font-bold text-teal-700">${g.grouping}</td>
+                                                        <td class="p-3 text-center font-bold text-emerald-700">${g.grouping}</td>
                                                     </tr>
                                                 `).join('')}
                                             </tbody>
@@ -4390,7 +4471,7 @@ IMPORTANT:
                                     <h3 class="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2"><i data-lucide="file-text" class="h-5 w-5"></i> Agronomist Narrative</h3>
                                     <p class="text-xs text-indigo-700 mb-4">AI-generated summary of findings.</p>
                                     <textarea id="narrative-text" class="w-full h-96 p-4 rounded-lg border-0 shadow-inner bg-white/80 text-sm leading-relaxed" placeholder="Click 'Generate AI Narrative' to create a report...">${sanitizeHTML(project.Narrative || '')}</textarea>
-                                    <button data-action="save-narrative" class="mt-4 w-full bg-teal-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-teal-700 transition flex items-center justify-center gap-2">
+                                    <button data-action="save-narrative" class="mt-4 w-full bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2">
                                         <i data-lucide="save" class="h-4 w-4"></i> Save Narrative
                                     </button>
                                  </div>
@@ -4503,7 +4584,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                     if (tooManyControls) {
                         readinessIcon = '<i data-lucide="alert-circle" class="h-5 w-5 text-red-500 animate-pulse" title="Error: Multiple Untreated Controls detected!"></i>';
                     } else if (hasControl) {
-                        readinessIcon = '<i data-lucide="check-circle-2" class="h-4 w-4 text-teal-500" title="Control Present"></i>';
+                        readinessIcon = '<i data-lucide="check-circle-2" class="h-4 w-4 text-emerald-500" title="Control Present"></i>';
                     } else {
                         readinessIcon = '<i data-lucide="alert-triangle" class="h-4 w-4 text-amber-500" title="Untreated Control Missing!"></i>';
                     }
@@ -4512,7 +4593,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                 <div class="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
                             <div class="bg-slate-50 p-4 flex justify-between items-center border-b">
                                 <div class="flex items-center gap-3">
-                                    <div class="bg-teal-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">
+                                    <div class="bg-emerald-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">
                                         R${block.ReplicationNum || '?'}
                                     </div>
                                     <h3 class="font-bold text-slate-800">${sanitizeHTML(block.Name)}</h3>
@@ -4617,7 +4698,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                         return `<img src="${proxied}" class="w-4 h-4 rounded-full border border-white">`;
                     }).join('')}
                                 </div>
-                                <span class="text-[10px] font-bold ${String(t.IsCompleted).toLowerCase() === 'true' ? 'text-teal-600' : 'text-amber-500'}">
+                                <span class="text-[10px] font-bold ${String(t.IsCompleted).toLowerCase() === 'true' ? 'text-emerald-600' : 'text-amber-500'}">
                                     ${String(t.IsCompleted).toLowerCase() === 'true' ? 'DONE' : 'ACTIVE'}
                                 </span>
                             </div>
@@ -4687,7 +4768,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                                 const days = Math.floor((new Date() - new Date(t.Date)) / (1000 * 60 * 60 * 24));
                                 duration = (days < 0 ? 0 : days) + ' (Ongoing)';
                             }
-                            return `<td class="px-4 py-2 border-r font-medium text-teal-600">${duration}</td>`;
+                            return `<td class="px-4 py-2 border-r font-medium text-emerald-600">${duration}</td>`;
                         }).join('')}
                                     </tr>
                                     <tr><td class="px-4 py-2 font-semibold text-gray-600 sticky left-0 bg-gray-50 border-r">Cost</td>
@@ -4930,8 +5011,8 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                 const pageTitles = { dashboard: 'Dashboard', formulations: 'My Formulations', trials: 'Trials', projects: 'Projects (RCBD)', projectDashboard: 'Project Dashboard', compareTrials: 'Compare Trials', organisations: 'Trial Organisations', ingredients: 'Ingredient Costs', aiAssistant: 'AI Assistant', dataMgmt: 'Data Management', settings: 'Settings' };
 
                 document.querySelectorAll('#sidebar-nav a').forEach(link => {
-                    link.classList.toggle('bg-teal-50', link.dataset.page === pageId);
-                    link.classList.toggle('text-teal-700', link.dataset.page === pageId);
+                    link.classList.toggle('bg-emerald-50', link.dataset.page === pageId);
+                    link.classList.toggle('text-emerald-700', link.dataset.page === pageId);
                     link.classList.toggle('font-semibold', link.dataset.page === pageId);
                     link.classList.toggle('text-slate-600', link.dataset.page !== pageId);
                 });
@@ -5028,7 +5109,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                                 const fields = state.settings.qrCodeFields || {};
                                 qrGrid.innerHTML = Object.keys(fields).map(key => `
                                     <label class="flex items-center gap-2">
-                                        <input type="checkbox" name="qr-${key}" ${fields[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                        <input type="checkbox" name="qr-${key}" ${fields[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-emerald-600">
                                         ${key.replace(/([A-Z])/g, ' $1')}
                                     </label>
                                 `).join('');
@@ -5039,7 +5120,7 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                                 const fields = state.settings.qrOnlineFields || {};
                                 qrOnlineGrid.innerHTML = Object.keys(fields).map(key => `
                                     <label class="flex items-center gap-2">
-                                        <input type="checkbox" name="qro-${key}" ${fields[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                        <input type="checkbox" name="qro-${key}" ${fields[key] ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-emerald-600">
                                         ${key.replace('show', '').replace(/([A-Z])/g, ' $1')}
                                     </label>
                                 `).join('');
@@ -5073,10 +5154,10 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
             window.switchPage = switchPage;
             window.switchTrialDetailTab = (tab) => {
                 document.querySelectorAll('.trial-detail-tab-btn').forEach(b => {
-                    b.classList.remove('text-teal-600', 'border-b-2', 'border-teal-600', 'font-bold');
+                    b.classList.remove('text-emerald-600', 'border-b-2', 'border-emerald-600', 'font-bold');
                     b.classList.add('text-gray-500', 'hover:text-gray-700');
                 });
-                document.querySelector(`[data-tab="${tab}"]`).classList.add('text-teal-600', 'border-b-2', 'border-teal-600', 'font-bold');
+                document.querySelector(`[data-tab="${tab}"]`).classList.add('text-emerald-600', 'border-b-2', 'border-emerald-600', 'font-bold');
                 document.querySelector(`[data-tab="${tab}"]`).classList.remove('text-gray-500', 'hover:text-gray-700');
 
                 document.querySelectorAll('.trial-detail-content').forEach(c => c.classList.add('hidden'));
@@ -5198,11 +5279,11 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                         if (container) {
                             container.innerHTML = state.formulations.map(f => `
                                 <div class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded border-b border-slate-100">
-                                    <input type="checkbox" name="fids" value="${f.ID}" id="cb_${f.ID}" class="h-5 w-5 rounded text-teal-600">
+                                    <input type="checkbox" name="fids" value="${f.ID}" id="cb_${f.ID}" class="h-5 w-5 rounded text-emerald-600">
                                     <div class="flex-grow pl-2">
                                         <label for="cb_${f.ID}" class="text-sm font-medium cursor-pointer block text-slate-700">${sanitizeHTML(f.Name)}</label>
                                     </div>
-                                    <select name="role_${f.ID}" class="text-xs border border-slate-300 rounded p-1.5 bg-white text-slate-700 focus:border-teal-500 focus:ring-1 focus:ring-teal-500" onchange="document.getElementById('cb_${f.ID}').checked = true">
+                                    <select name="role_${f.ID}" class="text-xs border border-slate-300 rounded p-1.5 bg-white text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" onchange="document.getElementById('cb_${f.ID}').checked = true">
                                         <option value="experimental">Experimental</option>
                                         <option value="standard">Standard Check</option>
                                         <option value="control">Untreated Control</option>
@@ -5911,13 +5992,13 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
                         <div class="weed-details-container space-y-2 mt-1">
                             <!-- Weed cover rows will be added here -->
                         </div>
-                        <button type="button" data-action="add-weed-cover" class="mt-2 text-xs text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"><i data-lucide="plus" class="h-3 w-3"></i> Add Weed Detail</button>
+                        <button type="button" data-action="add-weed-cover" class="mt-2 text-xs text-emerald-600 hover:text-emerald-800 font-semibold flex items-center gap-1"><i data-lucide="plus" class="h-3 w-3"></i> Add Weed Detail</button>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600">General Notes</label>
                         <div class="relative">
                             <textarea rows="2" class="p-2 border rounded-md text-sm w-full form-input obs-notes pr-10" placeholder="General observation notes..."></textarea>
-                            <button type="button" class="toggle-dictation absolute right-2 top-2 p-1 text-slate-400 hover:text-teal-600 rounded-full hover:bg-teal-50 focus:outline-none" title="Start voice typing">
+                            <button type="button" class="toggle-dictation absolute right-2 top-2 p-1 text-slate-400 hover:text-emerald-600 rounded-full hover:bg-emerald-50 focus:outline-none" title="Start voice typing">
                                 <i data-lucide="mic" class="w-5 h-5"></i>
                             </button>
                         </div>
@@ -10595,7 +10676,7 @@ Style Guidelines:
 
                     // Add summary stats row if weed selected
                     if (selectedWeed && metric === 'cover') {
-                        html += `<tr><td class="px-4 py-3 font-medium text-teal-800 bg-teal-50">Final ${sanitizeHTML(selectedWeed)} Control</td>${trials.map(t => {
+                        html += `<tr><td class="px-4 py-3 font-medium text-emerald-800 bg-emerald-50">Final ${sanitizeHTML(selectedWeed)} Control</td>${trials.map(t => {
                             const eff = safeJsonParse(t.EfficacyDataJSON);
                             const last = eff.sort((a, b) => b.daa - a.daa)[0];
                             const detail = last ? (last.weedDetails || []).find(d => d.species === selectedWeed) : null;
@@ -13249,7 +13330,7 @@ Style Guidelines:
                 el.classList.remove('hidden');
                 let html = '';
                 if (uploading > 0) {
-                    html = `<div class="flex items-center gap-2 text-teal-600 font-bold animate-pulse">
+                    html = `<div class="flex items-center gap-2 text-emerald-600 font-bold animate-pulse">
                         <i data-lucide="upload-cloud" class="h-4 w-4"></i>
                         <span>Syncing ${uploading} items...</span>
                     </div>`;
@@ -14145,7 +14226,7 @@ Style Guidelines:
                                 <p class="text-xs text-gray-500">Dosage: ${sanitizeHTML(m.dosage)} · DAA ${m.daa} · ${sanitizeHTML(m.investigator)}</p>
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <p class="text-lg font-bold ${parseFloat(m.efficacy) >= 90 ? 'text-green-600' : 'text-teal-600'}">${m.efficacy}%</p>
+                                <p class="text-lg font-bold ${parseFloat(m.efficacy) >= 90 ? 'text-green-600' : 'text-emerald-600'}">${m.efficacy}%</p>
                                 <p class="text-xs text-gray-400">efficacy</p>
                             </div>
                         </div>
@@ -16755,13 +16836,13 @@ RESPOND WITH JSON ONLY (no markdown, no explanation):
                      </td>
                      <td class="px-3 py-3 text-sm text-gray-500">
                         <input type="number" id="edit-val-${idx}" value="${issue.value !== undefined ? issue.value : ''}" 
-                            class="w-20 px-2 py-1 border rounded text-sm focus:ring-teal-500 focus:border-teal-500" 
+                            class="w-20 px-2 py-1 border rounded text-sm focus:ring-emerald-500 focus:border-emerald-500" 
                             ${issue.value === undefined ? 'disabled' : ''}>
                      </td>
                      <td class="px-3 py-3 text-sm text-gray-500">${recHtml}</td>
                      <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         ${issue.recommended !== undefined ?
-                        `<button onclick="acceptFix(${idx})" class="text-teal-600 hover:text-teal-900 font-bold text-xs border border-teal-200 bg-teal-50 px-2 py-1 rounded">Accept (${issue.recommended})</button>` : ''}
+                        `<button onclick="acceptFix(${idx})" class="text-emerald-600 hover:text-emerald-900 font-bold text-xs border border-emerald-200 bg-emerald-50 px-2 py-1 rounded">Accept (${issue.recommended})</button>` : ''}
                         
                         <button onclick="saveEdit(${idx})" class="text-blue-600 hover:text-blue-900 font-bold text-xs border border-blue-200 bg-blue-50 px-2 py-1 rounded">Save Edit</button>
                         
