@@ -619,6 +619,10 @@
         import { GoogleGenAI, Type } from "@google/genai";
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Global Chart.js configuration for high-resolution exports
+            if (window.Chart) {
+                Chart.defaults.devicePixelRatio = 4;
+            }
             // --- STATE MANAGEMENT ---
             let state = {
                 currentPage: 'dashboard',
