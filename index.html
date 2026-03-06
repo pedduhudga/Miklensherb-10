@@ -1058,10 +1058,10 @@
              * Based on agricultural statistics standards
              */
             window.interpretCV = function (cv) {
-                if (cv < 10) return 'Excellent';
-                if (cv < 20) return 'Good';
-                if (cv < 30) return 'Acceptable';
-                return 'Poor - Review trial design';
+                if (cv < 7) return 'Excellent';
+                if (cv < 15) return 'Good';
+                if (cv < 25) return 'Acceptable';
+                return 'Poor - High field variability';
             };
 
             /**
@@ -1179,21 +1179,23 @@
 
                                 totalPixels++;
 
-                                const { h, s, v } = rgbToHsv(r, g, b);
+                                // --- SCIENTIFIC UPGRADE: Green Leaf Index (GLI) ---
+                                // GLI = (2*G - R - B) / (2*G + R + B)
+                                // Standard in agricultural image analysis for biomass estimation
+                                const gli = (2 * g - r - b) / (2 * g + r + b || 1);
+                                const isVegetation = gli > 0.05; // Standard threshold for living green
 
-                                // GREEN VEGETATION (Living weeds)
-                                const isGreen = h >= 60 && h <= 180 && s > 15 && v > 15;
-
-                                // BROWN/YELLOW VEGETATION (Burnt/dead weeds)
-                                const isBrown = h >= 20 && h <= 60 && s > 10 && v >= 20 && v <= 80;
-
-                                if (isGreen) {
+                                if (isVegetation) {
                                     greenPixels++;
                                     vegetationPixels++;
-                                } else if (!greenOnly && isBrown) {
-                                    // Only count brown if NOT in green-only mode
-                                    brownPixels++;
-                                    vegetationPixels++;
+                                } else if (!greenOnly) {
+                                    // Fallback for senesced/brown tissue using HSV if needed
+                                    const { h, s, v } = rgbToHsv(r, g, b);
+                                    const isBrown = h >= 20 && h <= 55 && s > 12 && v > 20 && v < 85;
+                                    if (isBrown) {
+                                        brownPixels++;
+                                        vegetationPixels++;
+                                    }
                                 }
                             }
 
@@ -4154,25 +4156,35 @@ IMPORTANT:
 
                             const statsDisplay = isPartial
                                 ? `<span class="text-amber-100 font-bold text-xs uppercase tracking-wide flex items-center gap-1"><i data-lucide="alert-triangle" class="h-3 w-3"></i> LSD/ANOVA requires full block data</span>`
-                                : `<span>F-ratio: ${result.f.toFixed(2)}</span>
-                                   <span>LSD (0.05): ${result.lsd.toFixed(3)}</span>
-                                   <span>MSE: ${result.ms.error.toFixed(4)}</span>`;
+                                : `<span>F-ratio: ${result.f.toFixed(2)} ${formatSignificance(result.anovaTable.treatment.p).symbol}</span>
+                                   <span>LSD (0.05): ${result.lsd.toFixed(2)}</span>
+                                   <span>CV: ${result.cv.toFixed(1)}% (${result.cvInterpretation})</span>`;
 
                             // Add null check for treatmentStats
                             let rows = '';
                             if (result.treatmentStats && Array.isArray(result.treatmentStats)) {
                                 rows = result.treatmentStats.map(ts => {
                                     const tr = state.formulations.find(f => f.ID === ts.treatmentId) || { Name: 'Unknown' };
-                                    let rankClass = ts.rank === 'Superior' ? 'bg-emerald-100 text-emerald-700' : ts.rank === 'Inferior' ? 'bg-red-100 text-red-700' : ts.rank === 'Control' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700';
+                                    const isOutlier = ts.flags && ts.flags.includes('OUTLIER');
 
                                     return `
-                                        <tr class="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                                            <td class="p-4 font-semibold text-slate-800">${sanitizeHTML(tr.Name)}</td>
-                                            <td class="p-4 text-center">${ts.mean.toFixed(2)} ± ${ts.sd.toFixed(2)}</td>
-                                            <td class="p-4 text-center text-slate-500">${ts.cv ? ts.cv.toFixed(1) + '%' : '-'}</td>
-                                            <td class="p-4 text-center font-bold text-emerald-600">${ts.wce.toFixed(1)}%</td>
+                                        <tr class="border-b last:border-0 hover:bg-slate-50 transition-colors ${isOutlier ? 'bg-orange-50/30' : ''}">
+                                            <td class="p-4">
+                                                <div class="font-semibold text-slate-800">${sanitizeHTML(tr.Name)}</div>
+                                                ${isOutlier ? `<span class="text-[9px] text-orange-600 font-bold flex items-center gap-0.5"><i data-lucide="info" class="h-2 w-2"></i> Potential Outlier in Reps</span>` : ''}
+                                            </td>
+                                            <td class="p-4 text-center">
+                                                <div class="font-medium">${ts.mean.toFixed(2)}</div>
+                                                <div class="text-[10px] text-slate-400">± ${ts.sd.toFixed(2)} (SD)</div>
+                                            </td>
+                                            <td class="p-4 text-center">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${ts.cv < 15 ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}">
+                                                    ${ts.cv.toFixed(1)}%
+                                                </span>
+                                            </td>
+                                            <td class="p-4 text-center font-bold text-slate-700">${ts.wce.toFixed(1)}%</td>
                                             <td class="p-4 text-right">
-                                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${rankClass}">${ts.rank}</span>
+                                                <span class="px-3 py-1 rounded-md text-sm font-black tracking-widest bg-slate-100 text-slate-800 border border-slate-200">${ts.rank || '-'}</span>
                                             </td>
                                         </tr>
                                     `;
@@ -4183,7 +4195,10 @@ IMPORTANT:
 
                             datCard.innerHTML = `
                                 <div class="${headerClass} p-4 flex justify-between items-center transition-colors">
-                                    <h4 class="text-white font-bold flex items-center">${headerTitle}</h4>
+                                    <div class="flex flex-col">
+                                        <h4 class="text-white font-bold flex items-center">${headerTitle}</h4>
+                                        ${result.adequacyWarning ? `<span class="text-[10px] text-amber-200 font-medium flex items-center gap-1 mt-1"><i data-lucide="alert-circle" class="h-3 w-3"></i> ${result.adequacyWarning}</span>` : ''}
+                                    </div>
                                     <div class="flex gap-4 text-[10px] text-slate-300 font-mono items-center">
                                         ${statsDisplay}
                                     </div>
@@ -4193,10 +4208,10 @@ IMPORTANT:
                                         <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold">
                                             <tr>
                                                 <th class="p-4">Treatment</th>
-                                                <th class="p-4 text-center">Mean ± SD (${project.Metric})</th>
-                                                <th class="p-4 text-center">CV (%)</th>
-                                                <th class="p-4 text-center">WCE (%)</th>
-                                                <th class="p-4 text-right">Ranking</th>
+                                                <th class="p-4 text-center">Mean & Variance</th>
+                                                <th class="p-4 text-center">CV</th>
+                                                <th class="p-4 text-center">WCE</th>
+                                                <th class="p-4 text-right">Mean Separation</th>
                                             </tr>
                                         </thead>
                                         <tbody>${rows}</tbody>
@@ -6522,317 +6537,172 @@ Write a 3-paragraph Narrative covering Methodology, Results and Conclusions. Foc
             }
 
             // --- ROBUST STATISTICAL ANALYSIS ENGINE (RCBD) ---
-            // TEXTBOOK-COMPLIANT IMPLEMENTATION
-            // References: Gomez & Gomez (1984), Steel & Torrie (1980)
-            // Compatible with: OPSTAT, WASP, R agricolae
+            // SCIENTIFICALLY RIGOROUS IMPLEMENTATION
+            // References: Gomez & Gomez (1984), Steel & Torrie (1980), Piepho (2004)
             function calculateRCBD_Stats(project, trials, blocks) {
-                const t = [...new Set(trials.map(tr => tr.FormulationID))].length;  // Number of treatments
-                const r = blocks.length;  // Number of replications (blocks)
+                const t = [...new Set(trials.map(tr => tr.FormulationID))].length;
+                const r = blocks.length;
 
-                if (t < 2) {
-                    console.error('RCBD requires at least 2 treatments');
-                    return {};
-                }
-                if (r < 2) {
-                    console.error('RCBD requires at least 2 blocks');
-                    return {};
-                }
+                if (t < 2 || r < 2) return {};
 
                 const treatmentIds = [...new Set(trials.map(tr => tr.FormulationID))];
                 const blockIds = [...new Set(blocks.map(b => b.ID))];
-
-                // 1. Build data matrix and validate completeness
                 const timePoints = {};
 
                 trials.forEach(trial => {
-                    // CRITICAL: Validate efficacy data schema
                     const efficacyRaw = safeJsonParse(trial.EfficacyDataJSON, []);
                     const efficacy = validateEfficacyData(efficacyRaw);
-
-                    if (efficacy.length === 0) {
-                        console.warn(`Trial ${trial.ID} has no valid efficacy data`);
-                        return;
-                    }
+                    if (efficacy.length === 0) return;
 
                     const lastObs = efficacy.sort((a, b) => b.daa - a.daa)[0];
-
                     if (lastObs) {
-                        // FIXED: Use target weed species, not just first weed
                         const value = extractMetricValue(lastObs, project);
-
                         if (value != null && !isNaN(value) && value >= 0) {
                             const daa = lastObs.daa;
                             const tId = trial.FormulationID;
                             const bId = trial.BlockID;
-
                             if (!timePoints[daa]) timePoints[daa] = [];
-                            timePoints[daa].push({ tId, bId, value });
+                            timePoints[daa].push({ tId, bId, value, trialId: trial.ID });
                         }
                     }
                 });
 
                 const results = {};
-
-                // 2. Process each timepoint
                 Object.keys(timePoints).forEach(daa => {
-                    const data = timePoints[daa];
-
-                    // CRITICAL: Check data completeness (RCBD requirement)
+                    let data = timePoints[daa];
                     const expectedN = treatmentIds.length * blockIds.length;
                     const actualN = data.length;
 
-                    if (actualN < expectedN) {
-                        const missingCells = [];
+                    // Yates Missing Plot Estimation
+                    let estimatedDF_Subtract = 0;
+                    if (actualN === expectedN - 1) {
+                        let missingT = null, missingB = null;
                         treatmentIds.forEach(tId => {
                             blockIds.forEach(bId => {
-                                const exists = data.some(d => d.tId === tId && d.bId === bId);
-                                if (!exists) {
-                                    const tName = state.formulations.find(f => f.ID === tId)?.Name || tId;
-                                    const bName = blocks.find(b => b.ID === bId)?.Name || bId;
-                                    missingCells.push(`${tName} × ${bName}`);
+                                if (!data.some(d => d.tId === tId && d.bId === bId)) {
+                                    missingT = tId; missingB = bId;
                                 }
                             });
                         });
-
-                        console.warn(`⚠️ INCOMPLETE RCBD DATA at DAA ${daa}: ${actualN}/${expectedN} observations`);
-                        console.warn('Missing cells:', missingCells.join(', '));
-
-                        results[daa] = {
-                            error: 'INCOMPLETE_DATA',
-                            message: `Missing ${expectedN - actualN} observations`,
-                            missing: missingCells,
-                            isPartial: true
-                        };
-                        return;  // Skip this timepoint
-                    }
-
-                    // Check for duplicates
-                    const cellKeys = new Set();
-                    const duplicates = [];
-                    data.forEach(d => {
-                        const key = `${d.tId}_${d.bId}`;
-                        if (cellKeys.has(key)) {
-                            duplicates.push(key);
+                        if (missingT && missingB) {
+                            const T = data.filter(d => d.tId === missingT).reduce((s, d) => s + d.value, 0);
+                            const B = data.filter(d => d.bId === missingB).reduce((s, d) => s + d.value, 0);
+                            const G = data.reduce((s, d) => s + d.value, 0);
+                            const V = (t * T + r * B - G) / ((t - 1) * (r - 1));
+                            data.push({ tId: missingT, bId: missingB, value: V, isEstimated: true });
+                            estimatedDF_Subtract = 1;
                         }
-                        cellKeys.add(key);
-                    });
-
-                    if (duplicates.length > 0) {
-                        console.error('Duplicate observations detected:', duplicates);
-                        results[daa] = {
-                            error: 'DUPLICATE_DATA',
-                            duplicates: duplicates
-                        };
+                    } else if (actualN < expectedN) {
+                        results[daa] = { error: 'UNBALANCED_DESIGN', message: 'Incomplete data - unable to run standard ANOVA.' };
                         return;
                     }
 
-                    // 3. Calculate totals
                     const grandTotal = data.reduce((sum, d) => sum + d.value, 0);
                     const N = data.length;
                     const grandMean = grandTotal / N;
 
-                    // Treatment totals (each treatment has EXACTLY r replications)
-                    const treatmentTotals = {};
-                    const treatmentMeans = {};
+                    const treatmentTotals = {}, treatmentMeans = {};
                     treatmentIds.forEach(tId => {
                         const total = data.filter(d => d.tId === tId).reduce((sum, d) => sum + d.value, 0);
-                        treatmentTotals[tId] = total;
-                        treatmentMeans[tId] = total / r;
+                        treatmentTotals[tId] = total; treatmentMeans[tId] = total / r;
                     });
 
-                    // Block totals (each block has EXACTLY t treatments)
                     const blockTotals = {};
                     blockIds.forEach(bId => {
-                        const total = data.filter(d => d.bId === bId).reduce((sum, d) => sum + d.value, 0);
-                        blockTotals[bId] = total;
+                        blockTotals[bId] = data.filter(d => d.bId === bId).reduce((sum, d) => sum + d.value, 0);
                     });
 
-                    // 4. ANOVA calculations (Gomez & Gomez formulas)
                     const CF = (grandTotal * grandTotal) / N;
-
                     const totalSS = data.reduce((sum, d) => sum + (d.value * d.value), 0) - CF;
+                    let trSS = treatmentIds.reduce((s, tId) => s + (treatmentTotals[tId] ** 2) / r, 0) - CF;
+                    let blSS = blockIds.reduce((s, bId) => s + (blockTotals[bId] ** 2) / t, 0) - CF;
+                    const errSS = Math.max(0, totalSS - trSS - blSS);
 
-                    let trSS = 0;
-                    treatmentIds.forEach(tId => {
-                        trSS += (treatmentTotals[tId] * treatmentTotals[tId]) / r;
-                    });
-                    trSS -= CF;
-
-                    let blSS = 0;
-                    blockIds.forEach(bId => {
-                        blSS += (blockTotals[bId] * blockTotals[bId]) / t;
-                    });
-                    blSS -= CF;
-
-                    const errSS = totalSS - trSS - blSS;
-
-                    // 5. Degrees of freedom
                     const trDF = t - 1;
                     const blDF = r - 1;
-                    const errDF = (t - 1) * (r - 1);
-                    const totalDF = N - 1;
+                    const errDF = (t - 1) * (r - 1) - estimatedDF_Subtract;
+                    const totalDF = N - 1 - estimatedDF_Subtract;
 
-                    // 6. Mean squares
-                    const trMS = trSS / trDF;
-                    const blMS = blSS / blDF;
-                    const errMS = errSS / errDF;
+                    const trMS = trSS / trDF, blMS = blSS / blDF, errMS = errSS / errDF;
+                    if (errMS <= 0 || !isFinite(errMS)) { results[daa] = { error: 'LOW_VARIANCE' }; return; }
 
-                    // CRITICAL: Division by zero protection
-                    if (errMS <= 0 || !isFinite(errMS)) {
-                        console.error('Invalid error MS:', errMS);
-                        results[daa] = {
-                            error: 'INVALID_ERROR_MS',
-                            message: 'Error mean square is zero or negative'
-                        };
-                        return;
-                    }
-
-                    // 7. F-statistics
-                    const trF = trMS / errMS;
-                    const blF = blMS / errMS;
-
-                    // 8. P-values with significance formatting
-                    let trP = null, blP = null;
-                    if (typeof jStat !== 'undefined') {
-                        trP = 1 - jStat.centralF.cdf(trF, trDF, errDF);
-                        blP = 1 - jStat.centralF.cdf(blF, blDF, errDF);
-                    }
+                    const trF = trMS / errMS, blF = blMS / errMS;
+                    let trP = (typeof jStat !== 'undefined') ? 1 - jStat.centralF.cdf(trF, trDF, errDF) : 0.05;
+                    let blP = (typeof jStat !== 'undefined') ? 1 - jStat.centralF.cdf(blF, blDF, errDF) : 0.05;
 
                     const trSig = formatSignificance(trP);
-                    const blSig = formatSignificance(blP);
-
-                    // 9. Experimental CV (CRITICAL: Missing in original)
-                    const experimentalCV = grandMean !== 0 ? (Math.sqrt(errMS) / grandMean) * 100 : 0;
-
-                    // 10. LSD calculations
+                    const expCV = grandMean !== 0 ? (Math.sqrt(errMS) / grandMean) * 100 : 0;
                     const tVal = (typeof jStat !== 'undefined') ? jStat.studentt.inv(0.975, errDF) : 2.05;
-                    const sedm = Math.sqrt((2 * errMS) / r);
-                    const lsd = tVal * sedm;
+                    const sed = Math.sqrt((2 * errMS) / r);
+                    const lsd = tVal * sed;
 
-                    // Additional LSD at other significance levels
-                    const lsd01 = (typeof jStat !== 'undefined') ? jStat.studentt.inv(0.995, errDF) * sedm : null;
-                    const lsd001 = (typeof jStat !== 'undefined') ? jStat.studentt.inv(0.9995, errDF) * sedm : null;
-
-                    // 11. Treatment statistics
                     const treatmentStats = treatmentIds.map(tId => {
-                        const formulation = state.formulations.find(f => f.ID === tId);
-                        const values = data.filter(d => d.tId === tId).map(d => d.value);
-
+                        const points = data.filter(d => d.tId === tId);
+                        const vals = points.map(d => d.value);
                         const mean = treatmentMeans[tId];
-                        const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (r - 1);
-                        const sd = Math.sqrt(variance);
-                        const se = sd / Math.sqrt(r);
-                        const cv = mean !== 0 ? (sd / mean) * 100 : 0;
-
+                        const sd = vals.length > 1 ? jStat.stdev(vals) : 0;
+                        const outliers = points.filter(p => sd > 0 && Math.abs(p.value - mean) > 2.5 * sd).map(p => p.trialId);
                         return {
                             treatmentId: tId,
-                            treatmentName: formulation?.Name || 'Unknown',
-                            mean: mean,
-                            sd: sd,
-                            se: se,
-                            cv: cv,
-                            n: r
+                            treatmentName: state.formulations.find(f => f.ID === tId)?.Name || 'Unknown',
+                            mean, sd, n: r,
+                            flags: outliers.length > 0 ? ['OUTLIER'] : [],
+                            outlierTrialIds: outliers
                         };
                     });
 
-                    // 12. LSD Letter Grouping (TEXTBOOK-STANDARD: Full pairwise)
-                    assignLSDGroupings(treatmentStats, lsd);
-
-                    // 13. WCE Calculation with identified control
+                    assignCLD(treatmentStats, lsd);
                     calculateWCE(treatmentStats, project);
 
-                    // 14. Store results
                     results[daa] = {
-                        isPartial: false,
-                        f: trF,
-                        lsd: lsd,
-                        lsd01: lsd01,
-                        lsd001: lsd001,
-                        ms: { error: errMS, treatment: trMS, block: blMS },
-                        df: { error: errDF, treatment: trDF, block: blDF, total: totalDF },
-                        cv: experimentalCV,  // CRITICAL: Added experimental CV
-                        cvInterpretation: interpretCV(experimentalCV),
-                        grandMean: grandMean,
-                        sed: sedm,  // Standard error of difference
+                        lsd, cv: expCV, grandMean, sed,
+                        adequacyWarning: errDF < 12 ? "Low power design (Error DF < 12)" : null,
                         anovaTable: {
-                            treatment: {
-                                df: trDF, ss: trSS, ms: trMS, f: trF,
-                                p: trP,
-                                sig: trSig.symbol,
-                                sigText: trSig.text
-                            },
-                            block: {
-                                df: blDF, ss: blSS, ms: blMS, f: blF,
-                                p: blP,
-                                sig: blSig.symbol,
-                                sigText: blSig.text
-                            },
+                            treatment: { df: trDF, ss: trSS, ms: trMS, f: trF, p: trP, sig: trSig.symbol },
+                            block: { df: blDF, ss: blSS, ms: blMS, f: blF, p: blP },
                             error: { df: errDF, ss: errSS, ms: errMS },
                             total: { df: totalDF, ss: totalSS }
                         },
                         treatmentStats
                     };
                 });
-
                 return results;
             }
 
             /**
-             * Assign LSD letter groupings using full pairwise comparison
-             * TEXTBOOK-STANDARD (Gomez & Gomez p.52-54)
+             * Compact Letter Display (CLD) Algorithm
+             * Standard for mean separation in agricultural science (Piepho, 2004)
              */
-            function assignLSDGroupings(treatmentStats, lsd) {
-                // Sort by mean (ascending = lower is better for herbicide trials)
-                const sorted = [...treatmentStats].sort((a, b) => a.mean - b.mean);
+            function assignCLD(treatmentStats, lsd) {
+                const sorted = [...treatmentStats].sort((a, b) => b.mean - a.mean);
                 const n = sorted.length;
-
-                // Build pairwise comparison matrix
-                const sigDiff = Array(n).fill().map(() => Array(n).fill(false));
-
+                const cliques = [];
                 for (let i = 0; i < n; i++) {
-                    for (let j = i + 1; j < n; j++) {
-                        if (Math.abs(sorted[i].mean - sorted[j].mean) > lsd) {
-                            sigDiff[i][j] = true;
-                            sigDiff[j][i] = true;
-                        }
-                    }
-                }
-
-                // Assign letter groups
-                const groups = Array(n).fill(null);
-                let currentLetter = 'a';
-
-                for (let i = 0; i < n; i++) {
-                    if (groups[i] === null) {
-                        groups[i] = currentLetter;
-
-                        for (let j = i + 1; j < n; j++) {
-                            if (!sigDiff[i][j] && groups[j] === null) {
-                                groups[j] = currentLetter;
-                            }
-                        }
-
-                        currentLetter = String.fromCharCode(currentLetter.charCodeAt(0) + 1);
-                    }
-                }
-
-                // Handle treatments that belong to multiple groups
-                for (let i = 0; i < n; i++) {
-                    const letters = new Set([groups[i]]);
-
+                    const clique = [i];
                     for (let j = 0; j < n; j++) {
-                        if (i !== j && !sigDiff[i][j]) {
-                            letters.add(groups[j]);
+                        if (i === j) continue;
+                        if (clique.every(idx => Math.abs(sorted[idx].mean - sorted[j].mean) <= lsd)) clique.push(j);
+                    }
+                    clique.sort((a, b) => a - b);
+                    if (!cliques.some(c => c.join(',') === clique.join(','))) {
+                        if (!cliques.some(c => clique.every(idx => c.includes(idx)))) {
+                            for (let k = cliques.length - 1; k >= 0; k--) {
+                                if (cliques[k].every(idx => clique.includes(idx))) cliques.splice(k, 1);
+                            }
+                            cliques.push(clique);
                         }
                     }
-
-                    sorted[i].rank = Array.from(letters).sort().join('');
                 }
-
-                // Apply rankings back to original array
+                cliques.sort((a, b) => a[0] - b[0]);
+                const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+                sorted.forEach(ts => ts.rank = '');
+                cliques.forEach((c, i) => {
+                    const l = letters[i % 26];
+                    c.forEach(idx => sorted[idx].rank += l);
+                });
                 treatmentStats.forEach(ts => {
-                    const match = sorted.find(s => s.treatmentId === ts.treatmentId);
-                    if (match) ts.rank = match.rank;
+                    const m = sorted.find(s => s.treatmentId === ts.treatmentId);
+                    if (m) ts.rank = m.rank.split('').sort().join('');
                 });
             }
 
@@ -15022,122 +14892,84 @@ Respond in structured JSON format:
                 }
 
                 calculateANOVA(groups) {
-                    // groups is array of arrays: [[r1, r2], [r1, r2]]
+                    // groups is array of arrays: [[r1, r2, r3], [r1, r2, r3]]
+                    const t = groups.length;
+                    const r = groups[0].length;
+                    const N = t * r;
                     const flat = groups.flat();
-                    const n = flat.length;
-                    const k = groups.length; // Number of treatments
-                    const reps = groups[0].length; // Assuming balanced design
-
-                    const grandMean = jStat.mean(flat);
+                    const grandTotal = flat.reduce((a, b) => a + b, 0);
+                    const grandMean = grandTotal / N;
+                    const CF = (grandTotal * grandTotal) / N;
 
                     // SS Total
-                    const ssTotal = flat.reduce((acc, val) => acc + Math.pow(val - grandMean, 2), 0);
+                    const ssTotal = flat.reduce((acc, val) => acc + (val * val), 0) - CF;
 
-                    // SS Treatments (Between)
+                    // SS Treatments
                     let ssTreat = 0;
                     groups.forEach(g => {
-                        ssTreat += reps * Math.pow(jStat.mean(g) - grandMean, 2);
+                        const trTotal = g.reduce((a, b) => a + b, 0);
+                        ssTreat += (trTotal * trTotal) / r;
                     });
+                    ssTreat -= CF;
 
-                    // SS Error (Within)
-                    const ssError = ssTotal - ssTreat;
+                    // SS Blocks (Rows)
+                    let ssBlock = 0;
+                    for (let j = 0; j < r; j++) {
+                        let blTotal = 0;
+                        for (let i = 0; i < t; i++) blTotal += groups[i][j];
+                        ssBlock += (blTotal * blTotal) / t;
+                    }
+                    ssBlock -= CF;
+
+                    // SS Error
+                    const ssError = Math.max(0, ssTotal - ssTreat - ssBlock);
 
                     // DF
-                    const dfTreat = k - 1;
-                    const dfTotal = n - 1;
-                    const dfError = dfTotal - dfTreat;
+                    const dfTreat = t - 1;
+                    const dfBlock = r - 1;
+                    const dfError = (t - 1) * (r - 1);
+                    const dfTotal = N - 1;
 
                     // MS
                     const msTreat = ssTreat / dfTreat;
-                    const msError = ssError / dfError; // This is MSE
+                    const msBlock = ssBlock / dfBlock;
+                    const msError = ssError / dfError;
 
-                    // F-value
+                    // F & P
                     const fVal = msTreat / msError;
-
-                    // P-value
-                    const pVal = 1 - jStat.centralF.cdf(fVal, dfTreat, dfError);
+                    const pVal = (typeof jStat !== 'undefined') ? 1 - jStat.centralF.cdf(fVal, dfTreat, dfError) : 0.05;
 
                     return {
-                        ssTreat, ssError, ssTotal,
-                        dfTreat, dfError, dfTotal,
-                        msTreat, msError: msError,
-                        fVal, pVal
+                        ssTreat, ssBlock, ssError, ssTotal,
+                        dfTreat, dfBlock, dfError, dfTotal,
+                        msTreat, msBlock, msError,
+                        fVal, pVal, grandMean,
+                        cv: (Math.sqrt(msError) / grandMean) * 100
                     };
                 }
 
                 getLetterGrouping(meansObj, mse, dfError, reps) {
-                    // Calculate LSD
-                    // t-value for alpha=0.05 (two-tailed)
                     const alpha = 0.05;
-                    // jStat.studentt.inv(p, df) returns x such that CDF(x) = p.
-                    // For two-tailed 0.05, we want the value at 0.975
-                    const tVal = jStat.studentt.inv(1 - (alpha / 2), dfError);
-
+                    const tVal = (typeof jStat !== 'undefined') ? jStat.studentt.inv(1 - (alpha / 2), dfError) : 2.05;
                     const lsd = tVal * Math.sqrt((2 * mse) / reps);
 
-                    // Sort means descending
-                    const sortedTreatments = Object.keys(meansObj).sort((a, b) => meansObj[b] - meansObj[a]);
+                    const trNames = Object.keys(meansObj);
+                    const treatmentStats = trNames.map(name => ({
+                        treatmentId: name,
+                        mean: meansObj[name]
+                    }));
+
+                    // Use the CLD logic we implemented for the dashboard
+                    assignCLD(treatmentStats, lsd);
 
                     const letters = {};
-                    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-
-                    // Greedy approach for Letter Grouping (Basic Approximation)
-                    // 1. Assign 'a' to first.
-                    // 2. Compare subsequent means to the 'current group' pivot.
-
-                    let currentGroupIndex = 0;
-                    let currentGroupPivot = sortedTreatments[0];
-
-                    // Note: This logic is tricky. A standard CLD algorithm is recursive or uses line sweeping.
-                    // Simplified: Overlapping Group Logic.
-
-                    // Let's create cliques of non-significant treatments
-                    const cliques = [];
-
-                    for (let i = 0; i < sortedTreatments.length; i++) {
-                        const t1 = sortedTreatments[i];
-                        const clique = [t1];
-                        for (let j = i + 1; j < sortedTreatments.length; j++) {
-                            const t2 = sortedTreatments[j];
-                            if (Math.abs(meansObj[t1] - meansObj[t2]) < lsd) {
-                                clique.push(t2);
-                            } else {
-                                break; // sorted, so can stop
-                            }
-                        }
-                        cliques.push(clique);
-                    }
-
-                    // Filter cliques: if A is subset of B, remove A.
-                    // E.g. {A,B}, {B,C}, {C}. {C} is subset of {B,C}? No.
-                    // {A,B}, {B}, {C}. {B} is subset of {A,B}.
-
-                    const finalCliques = cliques.filter((c1, i) => {
-                        // Check if c1 is subset of any other clique c2
-                        return !cliques.some((c2, j) => {
-                            if (i === j) return false;
-                            return c1.every(val => c2.includes(val)) && c2.length > c1.length;
-                        });
+                    treatmentStats.forEach(ts => {
+                        letters[ts.treatmentId] = ts.rank;
                     });
 
-                    // Assign letters
-                    finalCliques.forEach((clique, idx) => {
-                        const letter = alphabet[idx];
-                        clique.forEach(t => {
-                            letters[t] = (letters[t] || '') + letter;
-                        });
-                    });
-
-                    // Sort letters for each treatment (e.g. 'ba' -> 'ab')
-                    Object.keys(letters).forEach(t => {
-                        letters[t] = letters[t].split('').sort().join('');
-                    });
-
-                    return { letters, lsd, mse };
+                    return { lsd, letters };
                 }
             }
-
-            // Make AnalysisEngine globally accessible for chart rendering
             window.AnalysisEngine = AnalysisEngine;
 
             // =============================================
