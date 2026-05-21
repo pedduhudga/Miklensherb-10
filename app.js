@@ -11371,21 +11371,17 @@ Respond ONLY with a single minified JSON object in this format: {"identification
 
             // --- AUTHENTICATION FUNCTIONS ---
             function checkSession() {
-                const savedAuth = localStorage.getItem('herbicide_auth');
-                if (savedAuth) {
-                    try {
-                        const auth = JSON.parse(savedAuth);
-                        const now = Date.now();
-                        if (auth.expiresAt && now > auth.expiresAt) {
-                            handleLogout();
-                            return false;
-                        }
-                        state.auth = auth;
-                        return true;
-                    } catch (e) {
-                        console.error('Failed to parse auth from localStorage', e);
-                        return false;
-                    }
+                // ALWAYS BYPASS LOGIN - Option C chosen by user
+                state.auth = {
+                    id: "local_user",
+                    Username: "Admin",
+                    Name: "Admin User",
+                    Role: "admin",
+                    token: "mock_token",
+                    expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000)
+                };
+                return true;
+            }
                 }
                 return false;
             }
@@ -11460,7 +11456,7 @@ Respond ONLY with a single minified JSON object in this format: {"identification
                 localStorage.removeItem('herbicide_auth');
                 localStorage.removeItem('adminViewUserId');
                 localStorage.removeItem('adminViewUsername');
-                document.getElementById('login-overlay').classList.remove('hidden');
+                /* bypassed login */
                 document.getElementById('user-profile-section').classList.add('hidden');
                 document.getElementById('login-password').value = ''; // Clear password field
                 showToast('Signed out successfully.', 'info');
@@ -11541,7 +11537,7 @@ Respond ONLY with a single minified JSON object in this format: {"identification
                     if (!state.settings.scriptUrl) {
                         document.getElementById('setup-overlay').classList.remove('hidden');
                     } else {
-                        document.getElementById('login-overlay').classList.remove('hidden');
+                        /* bypassed login */
                     }
                     return;
                 }
