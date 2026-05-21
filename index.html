@@ -12393,7 +12393,7 @@ Respond ONLY with a single minified JSON object in this format: {"identification
                 localStorage.removeItem('herbicide_auth');
                 localStorage.removeItem('adminViewUserId');
                 localStorage.removeItem('adminViewUsername');
-                /* bypassed login */
+                document.getElementById('login-overlay').classList.remove('hidden');
                 document.getElementById('user-profile-section').classList.add('hidden');
                 document.getElementById('login-password').value = ''; // Clear password field
                 showToast('Signed out successfully.', 'info');
@@ -12474,7 +12474,7 @@ Respond ONLY with a single minified JSON object in this format: {"identification
                     if (!state.settings.scriptUrl) {
                         document.getElementById('setup-overlay').classList.remove('hidden');
                     } else {
-                        /* bypassed login */
+                        document.getElementById('login-overlay').classList.remove('hidden');
                     }
                     return;
                 }
@@ -31071,7 +31071,7 @@ Specific agronomic recommendation based on treatment performance trends and weed
         
         // Hide setup, show login
         document.getElementById('setup-overlay').classList.add('hidden');
-        /* bypassed login */
+        document.getElementById('login-overlay').classList.remove('hidden');
         if (window.lucide) lucide.createIcons();
     }
     </script>
@@ -31079,7 +31079,3 @@ Specific agronomic recommendation based on treatment performance trends and weed
 </body>
 
 </html>
-
-
-
-
